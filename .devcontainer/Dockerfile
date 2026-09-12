@@ -15,6 +15,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         libgl1 \
         libglx-mesa0 \
         mesa-vulkan-drivers \
+        fonts-ipafont \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace

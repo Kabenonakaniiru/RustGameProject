@@ -1,4 +1,3 @@
-
 {
   "name": "Rust Game Dev (DevContainer)",
   "build": {
@@ -14,15 +13,17 @@
     "DISPLAY": "${localEnv:DISPLAY}",
     "WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}",
     "XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR}",
-    "PULSE_SERVER": "${localEnv:PULSE_SERVER}"
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "rust-lang.rust-analyzer",
-        "tamasfe.even-better-toml"
-      ]
-    }
-  },
-  "remoteUser": "vscode"
+    "PULSE_SERVER": "${localEnv:PULSE_SERVER}",
+    "LIBGL_ALWAYS_SOFTWARE": "1"
+  }
+},
+"customizations": {
+  "vscode": {
+    "extensions": [
+      "rust-lang.rust-analyzer",
+      "tamasfe.even-better-toml"
+    ]
+  }
+},
+"remoteUser": "vscode"
 }
