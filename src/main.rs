@@ -1,54 +1,62 @@
 use eframe::egui;
 
+pub struct MyApp {
+    label_text: String,
+}
+
+impl MyApp {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        setup_fonts(&cc.egui_ctx);
+        Self {
+            label_text: "こんにちは、世界！".to_string(),
+        }
+    }
+}
+
+fn setup_fonts(ctx: &egui::Context) {
+    let mut fonts = egui::FontDefinitions::default();
+
+    // FontData から Arc<FontData> への変換のため .into() を追加
+    fonts.font_data.insert(
+        "my_font".to_owned(),
+        egui::FontData::from_static(include_bytes!("../assets/ipag.ttf")).into(),
+    );
+
+    fonts
+        .families
+        .entry(egui::FontFamily::Proportional)
+        .or_default()
+        .insert(0, "my_font".to_owned());
+
+    fonts
+        .families
+        .entry(egui::FontFamily::Monospace)
+        .or_default()
+        .push("my_font".to_owned());
+
+    ctx.set_fonts(fonts);
+}
+
+impl eframe::App for MyApp {
+    // 最新の eframe では update(&mut self, ctx, frame) ではなく ui(&mut self, ui, frame) を実装
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        ui.heading("経営シミュレーション");
+        ui.label(&self.label_text);
+    }
+}
+
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([800.0, 600.0])
-            .with_title("経営シミュレーション"),
+            .with_title("経営シミュレーション")
+            .with_decorations(true)
+            .with_inner_size([800.0, 600.0]),
         ..Default::default()
     };
 
     eframe::run_native(
         "経営シミュレーション",
         options,
-        Box::new(|cc| {
-            setup_fonts(&cc.egui_ctx);
-            Ok(Box::new(MyApp::default()))
-        }),
+        Box::new(|cc| Ok(Box::new(MyApp::new(cc)))),
     )
-}
-
-fn setup_fonts(ctx: &egui::Context) {
-    let mut fonts = egui::FontDefinitions::default();
-
-    if let Ok(font_data) = std::fs::read("/usr/share/fonts/truetype/fonts-japanese-gothic.ttf") {
-        fonts.font_data.insert(
-            "JapaneseFont".to_owned(),
-            egui::FontData::from_owned(font_data).into(),
-        );
-
-        fonts
-            .families
-            .get_mut(&egui::FontFamily::Proportional)
-            .unwrap()
-            .insert(0, "JapaneseFont".to_owned());
-
-        fonts
-            .families
-            .get_mut(&egui::FontFamily::Monospace)
-            .unwrap()
-            .push("JapaneseFont".to_owned());
-
-        ctx.set_fonts(fonts);
-    }
-}
-
-#[derive(Default)]
-struct MyApp;
-
-impl eframe::App for MyApp {
-    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        ui.heading("メイン画面");
-        ui.label("ウィンドウ表示と日本語の描画に成功しました！");
-    }
 }
