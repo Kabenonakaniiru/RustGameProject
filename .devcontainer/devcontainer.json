@@ -22,5 +22,6 @@
       ]
     }
   },
-  "remoteUser": "vscode"
+  "remoteUser": "vscode",
+  "postCreateCommand": "sudo apt update && sudo apt install -y fonts-ipafont-gothic && rustup target add x86_64-pc-windows-msvc && cargo install cargo-xwin"
 }
