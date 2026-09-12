@@ -6,7 +6,9 @@
   "mounts": [
     "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
     "source=/mnt/wslg,target=/mnt/wslg,type=bind",
-    "source=rust-game-target-cache,target=${containerWorkspaceFolder}/target,type=volume"
+    "source=rust-game-target-cache,target=${containerWorkspaceFolder}/target,type=volume",
+    // agy の設定ディレクトリを Docker 領域に保持（vscode ユーザーの場合）
+    "source=agy-config-vol,target=/home/vscode/.config/agy,type=volume"
   ],
   "containerEnv": {
     "DISPLAY": ":0",
@@ -23,5 +25,5 @@
     }
   },
   "remoteUser": "vscode",
-  "postCreateCommand": "sudo apt update && sudo apt install -y fonts-ipafont-gothic && rustup target add x86_64-pc-windows-msvc && cargo install cargo-xwin"
+  "postCreateCommand": "sudo apt update && sudo apt install -y fonts-ipafont-gothic && rustup target add x86_64-pc-windows-msvc && cargo install cargo-xwin && curl -fsSL https://antigravity.google/cli/install.sh | bash"
 }
