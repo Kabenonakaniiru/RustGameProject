@@ -8,7 +8,7 @@
     "source=/mnt/wslg,target=/mnt/wslg,type=bind",
     "source=rust-game-target-cache,target=${containerWorkspaceFolder}/target,type=volume",
     // agy の設定ディレクトリを Docker 領域に保持（vscode ユーザーの場合）
-    "source=agy-config-vol,target=/home/vscode/.config/agy,type=volume"
+    "source=agy-config-vol,target=/home/vscode/.gemini/antigravity-cli,type=volume"
   ],
   "containerEnv": {
     "DISPLAY": ":0",
@@ -25,5 +25,5 @@
     }
   },
   "remoteUser": "vscode",
-  "postCreateCommand": "sudo apt update && sudo apt install -y fonts-ipafont-gothic && rustup target add x86_64-pc-windows-msvc && cargo install cargo-xwin && curl -fsSL https://antigravity.google/cli/install.sh | bash"
+  "postCreateCommand": "mkdir -p ~/.gemini/antigravity-cli && sudo chown -R $(whoami) ~/.gemini && sudo apt update && sudo apt install -y fonts-ipafont-gothic && rustup target add x86_64-pc-windows-msvc && cargo install cargo-xwin && curl -fsSL https://antigravity.google/cli/install.sh | bash"
 }
