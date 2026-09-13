@@ -7,6 +7,12 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
         pkg-config \
         libx11-dev \
+        libxcursor-dev \
+        libxrandr-dev \
+        libxi-dev \
+        libxinerama-dev \
+        libxfixes-dev \
+        libxkbcommon-x11-dev \
         libasound2-dev \
         libudev-dev \
         libwayland-dev \
