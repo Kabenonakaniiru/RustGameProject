@@ -46,7 +46,12 @@ pub fn render(ui: &mut egui::Ui, state: &GameState, status_msg: Option<&str>) ->
 
             // ステータスサマリーバー
             ui.horizontal_wrapped(|ui| {
-                ui.label(format!("📅 経過日数: 第 {} 日", state.day));
+                ui.label(format!(
+                    "📅 カレンダー: 第 {} 年目 {} 日目 (通算 {} 日)",
+                    state.current_year(),
+                    state.day_of_year(),
+                    state.day
+                ));
                 ui.separator();
 
                 let gold_color = if state.gold >= 0 {
