@@ -4,7 +4,9 @@ use rand_pcg::Pcg64;
 use serde::{Deserialize, Serialize};
 
 use super::adventurer::{Adventurer, AdventurerStatus, DeathCause, Skill, SkillType, Stats};
+use super::audit::MonthlyAudit;
 use super::finance::Staff;
+use super::guild_rank::{GuildRank, PromotionRequirement};
 use super::inventory::InventoryItem;
 use super::meta::HallOfFameAdventurer;
 use super::party::Party;
@@ -22,7 +24,7 @@ pub struct GameState {
     // 基本ステータス
     pub gold: i64,
     pub day: u32,
-    pub rank: String,
+    pub guild_rank: GuildRank,
     pub reputation: u32, // 総合名声（Guild Fame）
 
     // 発注勢力ごとの信頼度（-100 〜 +100）
@@ -45,6 +47,16 @@ pub struct GameState {
     pub total_sales_revenue: i64,
     pub total_commission: i64,
     pub total_expenses: i64,
+
+    // ギルド全体のクエスト完了累計
+    pub total_quests_completed: u32,
+
+    // 月次監査
+    pub audit: MonthlyAudit,
+
+    // ゲーム進行フラグ
+    pub game_over: bool,
+    pub game_cleared: bool,
 
     // 決定論的乱数シード & RNG
     pub rng_seed: u64,
@@ -220,7 +232,7 @@ impl GameState {
         Self {
             gold: 3500,
             day: 1,
-            rank: "ブロンズ (Rank 2)".to_string(),
+            guild_rank: GuildRank::F,
             reputation: 45,
             faction_trust,
             daily_tax: 25,
@@ -235,6 +247,10 @@ impl GameState {
             total_sales_revenue: 0,
             total_commission: 0,
             total_expenses: 0,
+            total_quests_completed: 0,
+            audit: MonthlyAudit::new(),
+            game_over: false,
+            game_cleared: false,
             rng_seed: 42,
             rng,
             logs,
@@ -264,8 +280,13 @@ impl GameState {
             + self.training_dojo.daily_salary_total()
     }
 
-    /// 1日進める処理（経費、クエスト進行、訓練、加齢・老衰）
+    /// 1日進める処理（経費、クエスト進行、訓練、加齢・老衰、月次監査、昇格判定）
     pub fn advance_day(&mut self) {
+        // ゲーム終了状態なら進行しない
+        if self.game_over || self.game_cleared {
+            return;
+        }
+
         self.day += 1;
 
         // 1. 固定費用の支払い
@@ -329,6 +350,16 @@ impl GameState {
         if (self.day - 1) % DAYS_PER_YEAR == 0 && self.day > 1 {
             self.process_yearly_aging();
         }
+
+        // 6. 月次監査（30日ごと）
+        if self.audit.is_audit_due(self.day) {
+            self.process_monthly_audit();
+        }
+
+        // 7. ランク昇格チェック（監査合格後に判定）
+        if !self.game_over {
+            self.check_promotion();
+        }
     }
 
     /// クエスト完了の判定・報酬精算・負傷戦死処理
@@ -356,6 +387,12 @@ impl GameState {
             self.gold += resolution.guild_commission;
             self.total_commission += resolution.guild_commission;
             self.reputation += resolution.fame_gain;
+
+            // クエスト完了カウント（成功以上）
+            if resolution.guild_commission > 0 {
+                self.total_quests_completed += 1;
+                self.audit.record_quest_completion();
+            }
 
             let current_trust = self.faction_trust.entry(quest_faction).or_insert(0);
             *current_trust = (*current_trust + resolution.trust_change).clamp(-100, 100);
@@ -463,6 +500,47 @@ impl GameState {
                 party.remove_member(id);
             }
             self.training_dojo.remove_trainee(id);
+        }
+    }
+
+    /// 月次監査の実行・上納金引き落とし・ゲームオーバー判定
+    pub fn process_monthly_audit(&mut self) {
+        let report = self.audit.execute_audit(self.day, self.guild_rank, self.gold);
+
+        // 上納金の控除
+        self.gold -= report.tribute_paid;
+        self.total_expenses += report.tribute_paid;
+
+        self.add_log(report.message.clone());
+
+        // 連続未達によるゲームオーバー判定
+        if self.audit.is_game_over() {
+            self.game_over = true;
+            self.add_log("【認可取消・ゲームオーバー】月次監査の連続未達により冒険者連盟からのギルド営業認可が取り消されました…");
+        }
+    }
+
+    /// ギルドランク昇格の判定と処理
+    pub fn check_promotion(&mut self) {
+        if let Some(next_rank) = self.guild_rank.next_rank() {
+            if let Some(req) = PromotionRequirement::for_rank(next_rank) {
+                if req.is_met(self.reputation, &self.faction_trust, self.total_quests_completed, self.day) {
+                    let prev_rank = self.guild_rank;
+                    self.guild_rank = next_rank;
+
+                    self.add_log(format!(
+                        "【ギルド昇格！】ギルドランクが {} から {} へ昇格しました！連盟からの信頼がさらに厚くなりました。",
+                        prev_rank.display_name(),
+                        next_rank.display_name()
+                    ));
+
+                    // Sランク（最高峰）到達でゲームクリア
+                    if next_rank == GuildRank::S {
+                        self.game_cleared = true;
+                        self.add_log("【祝・ゲームクリア】伝説のSランクギルドへ到達しました！歴史にその名を刻み、エンディングを迎えます。");
+                    }
+                }
+            }
         }
     }
 

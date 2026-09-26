@@ -62,7 +62,7 @@ pub fn render(ui: &mut egui::Ui, state: &GameState, status_msg: Option<&str>) ->
                 ui.colored_label(gold_color, format!("💰 ギルド資金: {} G", state.gold));
                 ui.separator();
 
-                ui.label(format!("🎖️ ギルドランク: {}", state.rank));
+                ui.label(format!("🎖️ ギルドランク: {}", state.guild_rank.display_name()));
                 ui.separator();
 
                 ui.label(format!("⭐ 名声値: {} pt", state.reputation));
@@ -72,6 +72,23 @@ pub fn render(ui: &mut egui::Ui, state: &GameState, status_msg: Option<&str>) ->
                     egui::Color32::from_rgb(255, 120, 120),
                     format!("📉 日次固定支出: -{} G/日", state.daily_total_expenses()),
                 );
+                ui.separator();
+
+                let days_to_audit = state.audit.days_until_next_audit(state.day);
+                let audit_color = if days_to_audit <= 5 {
+                    egui::Color32::from_rgb(255, 100, 100)
+                } else {
+                    egui::Color32::from_rgb(200, 200, 200)
+                };
+                ui.colored_label(audit_color, format!("⚖️ 次回監査まで: 残り {} 日", days_to_audit));
+
+                if state.game_over {
+                    ui.separator();
+                    ui.colored_label(egui::Color32::RED, "☠️ 【認可取消・GAME OVER】");
+                } else if state.game_cleared {
+                    ui.separator();
+                    ui.colored_label(egui::Color32::GREEN, "🏆 【Sランク到達・GAME CLEARED】");
+                }
             });
         });
 

@@ -1,5 +1,7 @@
 pub mod adventurer;
+pub mod audit;
 pub mod finance;
+pub mod guild_rank;
 pub mod inventory;
 pub mod meta;
 pub mod party;
@@ -8,7 +10,9 @@ pub mod state;
 pub mod training;
 
 pub use adventurer::{Adventurer, AdventurerStatus, DeathCause, Skill, SkillType, Stats};
+pub use audit::{AuditReport, AuditResult, MonthlyAudit, AUDIT_PERIOD_DAYS, MAX_CONSECUTIVE_FAILURES};
 pub use finance::Staff;
+pub use guild_rank::{GuildRank, PromotionRequirement};
 pub use inventory::InventoryItem;
 pub use meta::{HallOfFameAdventurer, MetaState};
 pub use party::{Party, MAX_PARTY_MEMBERS};
@@ -195,7 +199,7 @@ mod tests {
 
         assert_eq!(state.day, loaded.day);
         assert_eq!(state.gold, loaded.gold);
-        assert_eq!(state.rank, loaded.rank);
+        assert_eq!(state.guild_rank, loaded.guild_rank);
         assert_eq!(state.reputation, loaded.reputation);
         assert_eq!(state.adventurers.len(), loaded.adventurers.len());
         assert_eq!(state.parties.len(), loaded.parties.len());
@@ -203,5 +207,74 @@ mod tests {
         assert_eq!(state.logs, loaded.logs);
 
         let _ = std::fs::remove_file(temp_file);
+    }
+
+    #[test]
+    fn test_monthly_audit_pass_and_game_over() {
+        let mut state = GameState::new_default();
+        state.gold = 10000; // 30日間の固定費（145G/日）を支払える十分な資金
+        // Fランク: 月次上納金 100G, クエスト完了要件 1件
+        assert_eq!(state.guild_rank, GuildRank::F);
+        assert_eq!(state.guild_rank.monthly_tribute(), 100);
+        assert_eq!(state.guild_rank.monthly_quest_requirement(), 1);
+
+        // 1件クエストを完了させる（記録）
+        state.audit.record_quest_completion();
+
+        // 30日進める
+        for _ in 0..29 {
+            state.advance_day();
+        }
+        assert_eq!(state.day, 30);
+        assert_eq!(state.audit.consecutive_failures, 0);
+        // 30日目の監査で上納金100Gが引き落とされている（日次経費引き落としも加味）
+        assert_eq!(state.audit.last_audit_day, 30);
+        assert_eq!(state.audit.history.len(), 1);
+        assert_eq!(state.audit.history[0].result, AuditResult::Pass);
+
+        // 今度はクエスト完了数0件、資金も0Gにして3回連続未達にさせる
+        state.gold = 0;
+        // 60日目（1回目未達）
+        for _ in 0..30 {
+            state.advance_day();
+        }
+        assert_eq!(state.audit.consecutive_failures, 1);
+        assert!(!state.game_over);
+
+        // 90日目（2回目未達）
+        for _ in 0..30 {
+            state.advance_day();
+        }
+        assert_eq!(state.audit.consecutive_failures, 2);
+        assert!(!state.game_over);
+
+        // 120日目（3回目未達 → ゲームオーバー）
+        for _ in 0..30 {
+            state.advance_day();
+        }
+        assert_eq!(state.audit.consecutive_failures, 3);
+        assert!(state.game_over);
+    }
+
+    #[test]
+    fn test_guild_rank_promotion() {
+        let mut state = GameState::new_default();
+        assert_eq!(state.guild_rank, GuildRank::F);
+
+        // Eランク昇格条件: 名声50, クエスト累計5件, 経過日数15日, 信頼度いずれか15以上
+        state.reputation = 60;
+        state.total_quests_completed = 6;
+        state.faction_trust.insert(ClientFaction::Kingdom, 20);
+
+        // まだ15日未満なので昇格しない
+        state.check_promotion();
+        assert_eq!(state.guild_rank, GuildRank::F);
+
+        // 15日目まで進める
+        for _ in 0..14 {
+            state.advance_day();
+        }
+        // 15日目の advance_day で昇格チェックが自動発火
+        assert_eq!(state.guild_rank, GuildRank::E);
     }
 }
