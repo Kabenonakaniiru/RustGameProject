@@ -92,50 +92,13 @@ impl eframe::App for GuildApp {
                 ui.label("【 ギルド業務メニュー 】");
                 ui.add_space(4.0);
 
-                if ui
-                    .selectable_label(self.current_tab == Tab::GuildOverview, "🏛 ギルド基本情報")
-                    .clicked()
-                {
-                    self.current_tab = Tab::GuildOverview;
-                }
-                if ui
-                    .selectable_label(
-                        self.current_tab == Tab::QuestsAndDispatch,
-                        "📋 受付・クエスト派遣",
-                    )
-                    .clicked()
-                {
-                    self.current_tab = Tab::QuestsAndDispatch;
-                }
-                if ui
-                    .selectable_label(self.current_tab == Tab::Adventurers, "⚔ 冒険者管理")
-                    .clicked()
-                {
-                    self.current_tab = Tab::Adventurers;
-                }
-                if ui
-                    .selectable_label(
-                        self.current_tab == Tab::MarketAndTrading,
-                        "📦 倉庫・戦利品売買",
-                    )
-                    .clicked()
-                {
-                    self.current_tab = Tab::MarketAndTrading;
-                }
-                if ui
-                    .selectable_label(
-                        self.current_tab == Tab::StaffAndFacility,
-                        "👥 職員雇用・施設維持",
-                    )
-                    .clicked()
-                {
-                    self.current_tab = Tab::StaffAndFacility;
-                }
-                if ui
-                    .selectable_label(self.current_tab == Tab::FinancialReport, "📊 収支台帳")
-                    .clicked()
-                {
-                    self.current_tab = Tab::FinancialReport;
+                for &tab in &Tab::ALL {
+                    if ui
+                        .selectable_label(self.current_tab == tab, tab.label())
+                        .clicked()
+                    {
+                        self.current_tab = tab;
+                    }
                 }
 
                 ui.add_space(16.0);
