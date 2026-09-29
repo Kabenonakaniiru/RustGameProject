@@ -15,7 +15,8 @@ fn main() -> eframe::Result<()> {
         }
     }
 
-    let config = WindowConfig::default();
+    // 環境変数 (GUILD_WINDOW_WIDTH, GUILD_WINDOW_HEIGHT, GUILD_WINDOW_PRESET, GUILD_FULLSCREEN) があれば反映
+    let config = WindowConfig::from_env();
     let options = config.to_native_options();
 
     eframe::run_native(

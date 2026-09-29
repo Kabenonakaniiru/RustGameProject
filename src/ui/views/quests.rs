@@ -29,7 +29,8 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
 
     for (i, quest) in state.quests.iter().enumerate() {
         ui.group(|ui| {
-            ui.horizontal(|ui| {
+            // クエスト情報ヘッダー（レスポンシブ折り返し対応）
+            ui.horizontal_wrapped(|ui| {
                 ui.strong(&quest.title);
                 ui.label(format!("【危険度: {}】", quest.difficulty));
                 ui.colored_label(
@@ -41,7 +42,10 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
                 ui.label(format!("報酬目安: {} G", quest.reward_estimate));
             });
 
-            ui.horizontal(|ui| {
+            ui.add_space(4.0);
+
+            // 派遣操作・ステータス（レスポンシブ折り返し対応）
+            ui.horizontal_wrapped(|ui| {
                 if quest.is_dispatched {
                     ui.colored_label(
                         egui::Color32::from_rgb(255, 180, 50),

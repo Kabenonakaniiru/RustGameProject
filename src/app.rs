@@ -1,6 +1,6 @@
-use eframe::egui;
 use crate::core::{self, GameState};
 use crate::ui::{views, Tab};
+use eframe::egui;
 
 const SAVE_FILE_PATH: &str = "save_data.json";
 
@@ -8,6 +8,7 @@ pub struct GuildApp {
     pub state: GameState,
     pub current_tab: Tab,
     pub status_message: Option<String>,
+    pub zoom_factor: f32,
 }
 
 impl GuildApp {
@@ -16,6 +17,7 @@ impl GuildApp {
             state: GameState::new_default(),
             current_tab: Tab::GuildOverview,
             status_message: None,
+            zoom_factor: 1.0,
         }
     }
 
@@ -51,8 +53,23 @@ impl GuildApp {
 
 impl eframe::App for GuildApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        // 1. トップパネル（ヘッダーバー）
-        // 1. トップパネル（ヘッダーバー）
+        // ズーム操作用キーボードショートカット (Ctrl + '+' / '-' / '0')
+        ui.input(|i| {
+            if i.modifiers.command || i.modifiers.ctrl {
+                if i.key_pressed(egui::Key::Plus) || i.key_pressed(egui::Key::Equals) {
+                    self.zoom_factor = (self.zoom_factor + 0.1).min(2.0);
+                } else if i.key_pressed(egui::Key::Minus) {
+                    self.zoom_factor = (self.zoom_factor - 0.1).max(0.7);
+                } else if i.key_pressed(egui::Key::Num0) {
+                    self.zoom_factor = 1.0;
+                }
+            }
+        });
+
+        // UI全体のズーム倍率を反映
+        ui.ctx().set_zoom_factor(self.zoom_factor);
+
+        // 1. トップパネル（ヘッダーバー: 状況サマリー＆ズーム操作）
         egui::Panel::top("header_panel")
             .frame(egui::Frame::new())
             .show(ui, |ui| {
@@ -60,6 +77,7 @@ impl eframe::App for GuildApp {
                     ui,
                     &self.state,
                     self.status_message.as_deref(),
+                    self.zoom_factor,
                 );
                 match action {
                     crate::ui::components::header::HeaderAction::AdvanceDay => {
@@ -72,21 +90,36 @@ impl eframe::App for GuildApp {
                     crate::ui::components::header::HeaderAction::Load => {
                         self.load();
                     }
+                    crate::ui::components::header::HeaderAction::ZoomIn => {
+                        self.zoom_factor = (self.zoom_factor + 0.1).min(2.0);
+                    }
+                    crate::ui::components::header::HeaderAction::ZoomOut => {
+                        self.zoom_factor = (self.zoom_factor - 0.1).max(0.7);
+                    }
+                    crate::ui::components::header::HeaderAction::ResetZoom => {
+                        self.zoom_factor = 1.0;
+                    }
                     crate::ui::components::header::HeaderAction::None => {}
                 }
             });
 
-        // 2. ボトムパネル（フッター: 直近イベントログ）
+        // 2. ボトムパネル（フッター: 直近イベントログ＆解像度表示、リサイズ可）
         egui::Panel::bottom("footer_panel")
+            .resizable(true)
+            .default_size(100.0)
+            .min_size(55.0)
+            .max_size(250.0)
             .frame(egui::Frame::new())
             .show(ui, |ui| {
                 crate::ui::components::footer::render(ui, &self.state);
             });
 
-        // 3. レフトサイドパネル（業務ナビゲーション）
+        // 3. レフトサイドパネル（業務ナビゲーション、リサイズ可）
         egui::Panel::left("navigation_panel")
-            .resizable(false)
+            .resizable(true)
             .default_size(200.0)
+            .min_size(150.0)
+            .max_size(300.0)
             .show(ui, |ui| {
                 ui.add_space(8.0);
                 ui.label("【 ギルド業務メニュー 】");
@@ -106,9 +139,14 @@ impl eframe::App for GuildApp {
                 ui.add_space(8.0);
                 ui.label("【経営アドバイス】");
                 ui.small("冒険者を派遣して素材を買い取り、市場へ売却して利益を上げましょう。固定費の滞納に注意！");
+
+                ui.add_space(8.0);
+                ui.separator();
+                ui.add_space(4.0);
+                ui.small("💡 画面調整: パネル境界をドラッグしてサイズ変更可能です。");
             });
 
-        // 4. セントラルパネル（選択中タブの詳細画面）
+        // 4. セントラルパネル（選択中タブの詳細画面、縦横スクロール追従）
         egui::CentralPanel::default().show(ui, |ui| {
             egui::ScrollArea::both().show(ui, |ui| match self.current_tab {
                 Tab::GuildOverview => {
