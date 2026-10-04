@@ -3,7 +3,7 @@ pub mod config;
 pub mod font;
 pub mod views;
 
-pub use config::{APP_TITLE, WindowConfig, WindowSizePreset};
+pub use config::{APP_TITLE, UserSettings, WindowConfig, WindowSizePreset};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tab {

@@ -97,7 +97,13 @@ src/
   * `src/app.rs`: 動的ズームスケーリング（0.7x〜2.0x、Ctrl+/-/0 ショートカット）、境界ドラッグによるリサイズ可能ナビゲーションパネル（150〜300px）＆フッター（55〜250px）。
   * `src/ui/components/header.rs` & `footer.rs`: 狭幅時の自動縦並びレイアウト、ズーム調整ボタン、解像度インジケーター表示。
   * `src/ui/views/overview.rs` & `quests.rs`: 画面幅（700px）に応じた1列/2列自動切り替え、クエスト情報の折り返し対応。
-  * Unit テスト拡充（12件全パス）。
+* [x] **環境設定メニューの実装（2026-10-05 完了）**:
+  * `src/ui/config.rs`: `UserSettings` 構造体（`serde` 対応）、解像度プリセット・フルスクリーン・ズーム倍率・BGM/SE音量・ミュート・オートセーブ間隔・ダークモードの設定項目。`save_to_file` / `load_from_file_or_default` による `user_settings.json` への永続化。`WindowConfig::from_user_settings` / `from_settings_and_env` による起動時設定統合。
+  * `src/ui/components/settings.rs`（新規）: モーダルウィンドウ方式の設定画面（`egui::Window`）。画面解像度プリセット選択、フルスクリーン切替、UIズームスライダー、ダーク/ライトテーマ切替（即時反映）、BGM/SE音量スライダー（ミュート時無効化）、オートセーブ間隔設定、設定保存/初期設定復元ボタン。借用チェッカー衝突回避のため `SettingsAction` enum による閉じ制御。
+  * `src/ui/components/header.rs`: `HeaderAction::OpenSettings` 追加、ヘッダーに「⚙️ 設定」ボタン配置。
+  * `src/app.rs`: `GuildApp` に `settings: UserSettings` / `is_settings_open: bool` フィールド追加、Escキーでの設定メニュートグル、左ナビパネルに設定ボタン配置。
+  * `src/main.rs`: 起動時に保存済み設定からウィンドウサイズとテーマを適用。
+  * Unit テスト拡充（18件全パス）: 設定デフォルト値検証、ファイル保存/読み込み往復、存在しないファイル/破損ファイルのフォールバック、`WindowConfig` 統合テスト。
 
 ---
 

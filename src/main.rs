@@ -15,8 +15,9 @@ fn main() -> eframe::Result<()> {
         }
     }
 
-    // 環境変数 (GUILD_WINDOW_WIDTH, GUILD_WINDOW_HEIGHT, GUILD_WINDOW_PRESET, GUILD_FULLSCREEN) があれば反映
-    let config = WindowConfig::from_env();
+    // 保存済みユーザー設定を読み込み、環境変数の指定があれば優先適用
+    let settings = ui::config::UserSettings::load_from_file_or_default(ui::config::SETTINGS_FILE_PATH);
+    let config = WindowConfig::from_settings_and_env(&settings);
     let options = config.to_native_options();
 
     eframe::run_native(
@@ -24,6 +25,12 @@ fn main() -> eframe::Result<()> {
         options,
         Box::new(|cc| {
             font::setup_fonts(&cc.egui_ctx);
+            // 保存済みユーザー設定のテーマを起動時に適用
+            if settings.dark_mode {
+                cc.egui_ctx.set_visuals(eframe::egui::Visuals::dark());
+            } else {
+                cc.egui_ctx.set_visuals(eframe::egui::Visuals::light());
+            }
             Ok(Box::new(GuildApp::new()))
         }),
     )

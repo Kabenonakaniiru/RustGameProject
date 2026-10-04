@@ -1,4 +1,5 @@
 use crate::core::{self, GameState};
+use crate::ui::config::{UserSettings, SETTINGS_FILE_PATH};
 use crate::ui::{views, Tab};
 use eframe::egui;
 
@@ -8,16 +9,19 @@ pub struct GuildApp {
     pub state: GameState,
     pub current_tab: Tab,
     pub status_message: Option<String>,
-    pub zoom_factor: f32,
+    pub settings: UserSettings,
+    pub is_settings_open: bool,
 }
 
 impl GuildApp {
     pub fn new() -> Self {
+        let settings = UserSettings::load_from_file_or_default(SETTINGS_FILE_PATH);
         Self {
             state: GameState::new_default(),
             current_tab: Tab::GuildOverview,
             status_message: None,
-            zoom_factor: 1.0,
+            settings,
+            is_settings_open: false,
         }
     }
 
@@ -53,21 +57,27 @@ impl GuildApp {
 
 impl eframe::App for GuildApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        // ズーム操作用キーボードショートカット (Ctrl + '+' / '-' / '0')
+        // キーボードショートカット
         ui.input(|i| {
+            // Esc キーで設定メニューの開閉をトグル
+            if i.key_pressed(egui::Key::Escape) {
+                self.is_settings_open = !self.is_settings_open;
+            }
+
+            // ズーム操作ショートカット (Ctrl + '+' / '-' / '0')
             if i.modifiers.command || i.modifiers.ctrl {
                 if i.key_pressed(egui::Key::Plus) || i.key_pressed(egui::Key::Equals) {
-                    self.zoom_factor = (self.zoom_factor + 0.1).min(2.0);
+                    self.settings.zoom_factor = (self.settings.zoom_factor + 0.1).min(2.0);
                 } else if i.key_pressed(egui::Key::Minus) {
-                    self.zoom_factor = (self.zoom_factor - 0.1).max(0.7);
+                    self.settings.zoom_factor = (self.settings.zoom_factor - 0.1).max(0.7);
                 } else if i.key_pressed(egui::Key::Num0) {
-                    self.zoom_factor = 1.0;
+                    self.settings.zoom_factor = 1.0;
                 }
             }
         });
 
         // UI全体のズーム倍率を反映
-        ui.ctx().set_zoom_factor(self.zoom_factor);
+        ui.ctx().set_zoom_factor(self.settings.zoom_factor);
 
         // 1. トップパネル（ヘッダーバー: 状況サマリー＆ズーム操作）
         egui::Panel::top("header_panel")
@@ -77,7 +87,7 @@ impl eframe::App for GuildApp {
                     ui,
                     &self.state,
                     self.status_message.as_deref(),
-                    self.zoom_factor,
+                    self.settings.zoom_factor,
                 );
                 match action {
                     crate::ui::components::header::HeaderAction::AdvanceDay => {
@@ -90,14 +100,17 @@ impl eframe::App for GuildApp {
                     crate::ui::components::header::HeaderAction::Load => {
                         self.load();
                     }
+                    crate::ui::components::header::HeaderAction::OpenSettings => {
+                        self.is_settings_open = true;
+                    }
                     crate::ui::components::header::HeaderAction::ZoomIn => {
-                        self.zoom_factor = (self.zoom_factor + 0.1).min(2.0);
+                        self.settings.zoom_factor = (self.settings.zoom_factor + 0.1).min(2.0);
                     }
                     crate::ui::components::header::HeaderAction::ZoomOut => {
-                        self.zoom_factor = (self.zoom_factor - 0.1).max(0.7);
+                        self.settings.zoom_factor = (self.settings.zoom_factor - 0.1).max(0.7);
                     }
                     crate::ui::components::header::HeaderAction::ResetZoom => {
-                        self.zoom_factor = 1.0;
+                        self.settings.zoom_factor = 1.0;
                     }
                     crate::ui::components::header::HeaderAction::None => {}
                 }
@@ -143,6 +156,17 @@ impl eframe::App for GuildApp {
                 ui.add_space(8.0);
                 ui.separator();
                 ui.add_space(4.0);
+
+                // いつでも開ける環境設定ボタン
+                if ui
+                    .button("⚙️ 環境設定メニュー (Esc)")
+                    .on_hover_text("ウィンドウサイズや各種設定を変更します")
+                    .clicked()
+                {
+                    self.is_settings_open = true;
+                }
+
+                ui.add_space(4.0);
                 ui.small("💡 画面調整: パネル境界をドラッグしてサイズ変更可能です。");
             });
 
@@ -169,5 +193,19 @@ impl eframe::App for GuildApp {
                 }
             });
         });
+
+        // 5. 設定メニュー（モーダルウィンドウ: どの画面からでも最前面に展開可能）
+        let settings_action = crate::ui::components::settings::render(
+            ui.ctx(),
+            self.is_settings_open,
+            &mut self.settings,
+            &mut self.status_message,
+        );
+        match settings_action {
+            crate::ui::components::settings::SettingsAction::Close => {
+                self.is_settings_open = false;
+            }
+            crate::ui::components::settings::SettingsAction::None => {}
+        }
     }
 }

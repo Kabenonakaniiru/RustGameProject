@@ -1,7 +1,11 @@
 use eframe::egui;
+use serde::{Deserialize, Serialize};
 
 /// アプリケーション全体のタイトル
 pub const APP_TITLE: &str = "冒険者ギルド経営シミュレーション";
+
+/// 設定ファイルのデフォルトパス
+pub const SETTINGS_FILE_PATH: &str = "user_settings.json";
 
 /// ウィンドウの標準サイズ
 pub const DEFAULT_WINDOW_WIDTH: f32 = 1400.0;
@@ -12,7 +16,7 @@ pub const MIN_WINDOW_WIDTH: f32 = 800.0;
 pub const MIN_WINDOW_HEIGHT: f32 = 520.0;
 
 /// ウィンドウ解像度プリセット
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum WindowSizePreset {
     /// 小型ディスプレイ・ノートPC向け (1024 x 640, 16:10)
     Compact,
@@ -78,6 +82,73 @@ impl WindowSizePreset {
     }
 }
 
+/// ユーザー環境設定（ウィンドウサイズ・表示・音量・ゲーム設定など、将来の拡張に対応）
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UserSettings {
+    /// 選択中のウィンドウサイズプリセット
+    pub window_preset: WindowSizePreset,
+    /// フルスクリーン表示フラグ
+    pub fullscreen: bool,
+    /// UIズーム倍率 (0.7 ~ 2.0)
+    pub zoom_factor: f32,
+
+    // === 将来拡張用設定スロット ===
+    /// BGM音量 (0 ~ 100)
+    pub bgm_volume: u8,
+    /// SE（効果音）音量 (0 ~ 100)
+    pub se_volume: u8,
+    /// ミュートフラグ
+    pub is_muted: bool,
+    /// オートセーブ間隔（日数、0で無効）
+    pub auto_save_interval_days: u32,
+    /// ダーク/ライト表示テーマ
+    pub dark_mode: bool,
+}
+
+impl Default for UserSettings {
+    fn default() -> Self {
+        Self {
+            window_preset: WindowSizePreset::Standard,
+            fullscreen: false,
+            zoom_factor: 1.0,
+            bgm_volume: 80,
+            se_volume: 80,
+            is_muted: false,
+            auto_save_interval_days: 10,
+            dark_mode: true,
+        }
+    }
+}
+
+impl UserSettings {
+    /// 設定内容を egui コンテキストおよび viewport に即時適用
+    pub fn apply_to_context(&self, ctx: &egui::Context) {
+        ctx.set_zoom_factor(self.zoom_factor);
+        let [w, h] = self.window_preset.size();
+        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(w, h)));
+        ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.fullscreen));
+    }
+
+    /// 設定をローカルJSONファイルに保存
+    pub fn save_to_file(&self, path: &str) -> Result<(), String> {
+        let json = serde_json::to_string_pretty(self)
+            .map_err(|e| format!("設定のシリアライズに失敗: {}", e))?;
+        std::fs::write(path, json)
+            .map_err(|e| format!("設定ファイルの書き込みに失敗 ({}): {}", path, e))?;
+        Ok(())
+    }
+
+    /// ローカルJSONファイルから設定を読み込み（存在しない場合や破損時はデフォルト）
+    pub fn load_from_file_or_default(path: &str) -> Self {
+        if let Ok(content) = std::fs::read_to_string(path) {
+            if let Ok(settings) = serde_json::from_str::<UserSettings>(&content) {
+                return settings;
+            }
+        }
+        Self::default()
+    }
+}
+
 /// ウィンドウおよびGUI起動設定
 #[derive(Debug, Clone)]
 pub struct WindowConfig {
@@ -123,12 +194,26 @@ impl WindowConfig {
         }
     }
 
+    /// ユーザー環境設定からウィンドウ設定を生成
+    pub fn from_user_settings(settings: &UserSettings) -> Self {
+        Self {
+            title: APP_TITLE,
+            default_size: settings.window_preset.size(),
+            min_size: [MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT],
+            decorations: true,
+            resizable: true,
+            fullscreen: settings.fullscreen,
+        }
+    }
+
     /// 環境変数からウィンドウ設定を読み込み（未指定時はデフォルト）
-    /// - `GUILD_WINDOW_WIDTH`, `GUILD_WINDOW_HEIGHT`: ピクセルサイズ指定
-    /// - `GUILD_WINDOW_PRESET`: compact, standard, large, fullhd
-    /// - `GUILD_FULLSCREEN`: 1 または true でフルスクリーン
     pub fn from_env() -> Self {
-        Self::from_vars(|key| std::env::var(key).ok())
+        Self::from_settings_and_env(&UserSettings::default())
+    }
+
+    /// 保存済みユーザー設定を基本値とし、環境変数指定があれば上書きしてウィンドウ設定を生成
+    pub fn from_settings_and_env(settings: &UserSettings) -> Self {
+        Self::from_settings_and_vars(settings, |key| std::env::var(key).ok())
     }
 
     /// 変数取得関数からウィンドウ設定を構築（テストおよび外部設定用）
@@ -136,7 +221,15 @@ impl WindowConfig {
     where
         F: Fn(&str) -> Option<String>,
     {
-        let mut config = Self::default();
+        Self::from_settings_and_vars(&UserSettings::default(), get_var)
+    }
+
+    /// 設定と変数取得関数から構築（テスト可能）
+    pub fn from_settings_and_vars<F>(settings: &UserSettings, get_var: F) -> Self
+    where
+        F: Fn(&str) -> Option<String>,
+    {
+        let mut config = Self::from_user_settings(settings);
 
         // プリセット指定の確認
         if let Some(preset_str) = get_var("GUILD_WINDOW_PRESET") {
@@ -157,6 +250,8 @@ impl WindowConfig {
             let fs_lower = fs.to_ascii_lowercase();
             if fs_lower == "1" || fs_lower == "true" {
                 config.fullscreen = true;
+            } else if fs_lower == "0" || fs_lower == "false" {
+                config.fullscreen = false;
             }
         }
 
@@ -248,5 +343,96 @@ mod tests {
         let config_preset = WindowConfig::from_vars(|k| vars2.get(k).cloned());
         assert_eq!(config_preset.default_size, [1024.0, 640.0]);
         assert!(!config_preset.fullscreen);
+    }
+
+    #[test]
+    fn test_user_settings_roundtrip() {
+        let mut settings = UserSettings::default();
+        settings.window_preset = WindowSizePreset::Large;
+        settings.zoom_factor = 1.2;
+        settings.bgm_volume = 65;
+        settings.fullscreen = true;
+
+        let json = serde_json::to_string(&settings).expect("serialize failed");
+        let restored: UserSettings = serde_json::from_str(&json).expect("deserialize failed");
+
+        assert_eq!(restored.window_preset, WindowSizePreset::Large);
+        assert!((restored.zoom_factor - 1.2).abs() < 0.001);
+        assert_eq!(restored.bgm_volume, 65);
+        assert!(restored.fullscreen);
+    }
+
+    #[test]
+    fn test_user_settings_default_values() {
+        let defaults = UserSettings::default();
+
+        assert_eq!(defaults.window_preset, WindowSizePreset::Standard);
+        assert!(!defaults.fullscreen);
+        assert!((defaults.zoom_factor - 1.0).abs() < 0.001);
+        assert_eq!(defaults.bgm_volume, 80);
+        assert_eq!(defaults.se_volume, 80);
+        assert!(!defaults.is_muted);
+        assert_eq!(defaults.auto_save_interval_days, 10);
+        assert!(defaults.dark_mode);
+    }
+
+    #[test]
+    fn test_user_settings_file_save_and_load() {
+        let test_path = "test_user_settings_tmp.json";
+
+        // テスト用にカスタム設定を作成
+        let mut settings = UserSettings::default();
+        settings.window_preset = WindowSizePreset::Compact;
+        settings.zoom_factor = 1.5;
+        settings.dark_mode = false;
+        settings.auto_save_interval_days = 5;
+        settings.se_volume = 40;
+        settings.is_muted = true;
+
+        // 保存
+        settings.save_to_file(test_path).expect("save should succeed");
+
+        // 読み込み
+        let loaded = UserSettings::load_from_file_or_default(test_path);
+        assert_eq!(loaded.window_preset, WindowSizePreset::Compact);
+        assert!((loaded.zoom_factor - 1.5).abs() < 0.001);
+        assert!(!loaded.dark_mode);
+        assert_eq!(loaded.auto_save_interval_days, 5);
+        assert_eq!(loaded.se_volume, 40);
+        assert!(loaded.is_muted);
+
+        // テストファイル削除
+        let _ = std::fs::remove_file(test_path);
+    }
+
+    #[test]
+    fn test_user_settings_load_missing_file_returns_default() {
+        let loaded = UserSettings::load_from_file_or_default("nonexistent_settings_file.json");
+        let defaults = UserSettings::default();
+        assert_eq!(loaded, defaults);
+    }
+
+    #[test]
+    fn test_user_settings_load_corrupted_file_returns_default() {
+        let test_path = "test_corrupted_settings_tmp.json";
+        std::fs::write(test_path, "{ not valid json }}}").expect("write failed");
+
+        let loaded = UserSettings::load_from_file_or_default(test_path);
+        let defaults = UserSettings::default();
+        assert_eq!(loaded, defaults);
+
+        let _ = std::fs::remove_file(test_path);
+    }
+
+    #[test]
+    fn test_window_config_from_user_settings() {
+        let mut settings = UserSettings::default();
+        settings.window_preset = WindowSizePreset::FullHd;
+        settings.fullscreen = true;
+
+        let config = WindowConfig::from_user_settings(&settings);
+        assert_eq!(config.default_size, [1920.0, 1080.0]);
+        assert!(config.fullscreen);
+        assert_eq!(config.title, APP_TITLE);
     }
 }

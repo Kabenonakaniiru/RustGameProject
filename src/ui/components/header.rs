@@ -6,6 +6,7 @@ pub enum HeaderAction {
     AdvanceDay,
     Save,
     Load,
+    OpenSettings,
     ZoomIn,
     ZoomOut,
     ResetZoom,
@@ -117,6 +118,10 @@ fn render_action_buttons(
 
     if ui.button("📂 ロード").clicked() {
         *action = HeaderAction::Load;
+    }
+
+    if ui.button("⚙️ 設定").on_hover_text("環境設定メニューを開く (Esc)").clicked() {
+        *action = HeaderAction::OpenSettings;
     }
 
     ui.separator();
