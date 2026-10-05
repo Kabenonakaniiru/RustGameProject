@@ -30,7 +30,7 @@ pub fn render(
     egui::Window::new("⚙️ 環境設定・システム")
         .collapsible(false)
         .resizable(false)
-        .default_size([540.0, 520.0])
+        .default_size([540.0, 460.0])
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
         .show(ctx, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
@@ -90,33 +90,7 @@ pub fn render(
 
                 ui.add_space(8.0);
 
-                // ─── 2. 表示テーマ設定 ──────────────────────────
-                ui.group(|ui| {
-                    ui.heading("🎨 表示テーマ");
-                    ui.separator();
-
-                    ui.horizontal(|ui| {
-                        let label = if settings.dark_mode {
-                            "🌙 ダークモード（現在有効）"
-                        } else {
-                            "☀️ ライトモード（現在有効）"
-                        };
-                        if ui.checkbox(&mut settings.dark_mode, label).changed() {
-                            if settings.dark_mode {
-                                ctx.set_visuals(egui::Visuals::dark());
-                            } else {
-                                ctx.set_visuals(egui::Visuals::light());
-                            }
-                        }
-                    });
-                    ui.small(
-                        "テーマの変更は即時反映されます。設定を保存すると次回起動時にも適用されます。",
-                    );
-                });
-
-                ui.add_space(8.0);
-
-                // ─── 3. 音響・サウンド設定（将来拡張用スロット）───────────
+                // ─── 2. 音響・サウンド設定（将来拡張用スロット）───────────
                 ui.group(|ui| {
                     ui.horizontal(|ui| {
                         ui.heading("🔊 音響設定");
@@ -150,7 +124,7 @@ pub fn render(
 
                 ui.add_space(8.0);
 
-                // ─── 4. ゲームプレイ設定 ────────────────────────
+                // ─── 3. ゲームプレイ設定 ────────────────────────
                 ui.group(|ui| {
                     ui.heading("🕹️ ゲームプレイ設定");
                     ui.separator();
@@ -205,7 +179,6 @@ pub fn render(
                     {
                         *settings = UserSettings::default();
                         ctx.set_zoom_factor(settings.zoom_factor);
-                        ctx.set_visuals(egui::Visuals::dark());
                         should_apply_viewport = true;
                         *status_msg = Some("🔄 設定を初期値にリセットしました".to_string());
                     }

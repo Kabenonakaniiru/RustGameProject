@@ -101,8 +101,6 @@ pub struct UserSettings {
     pub is_muted: bool,
     /// オートセーブ間隔（日数、0で無効）
     pub auto_save_interval_days: u32,
-    /// ダーク/ライト表示テーマ
-    pub dark_mode: bool,
 }
 
 impl Default for UserSettings {
@@ -115,7 +113,6 @@ impl Default for UserSettings {
             se_volume: 80,
             is_muted: false,
             auto_save_interval_days: 10,
-            dark_mode: true,
         }
     }
 }
@@ -373,7 +370,6 @@ mod tests {
         assert_eq!(defaults.se_volume, 80);
         assert!(!defaults.is_muted);
         assert_eq!(defaults.auto_save_interval_days, 10);
-        assert!(defaults.dark_mode);
     }
 
     #[test]
@@ -384,7 +380,6 @@ mod tests {
         let mut settings = UserSettings::default();
         settings.window_preset = WindowSizePreset::Compact;
         settings.zoom_factor = 1.5;
-        settings.dark_mode = false;
         settings.auto_save_interval_days = 5;
         settings.se_volume = 40;
         settings.is_muted = true;
@@ -396,7 +391,6 @@ mod tests {
         let loaded = UserSettings::load_from_file_or_default(test_path);
         assert_eq!(loaded.window_preset, WindowSizePreset::Compact);
         assert!((loaded.zoom_factor - 1.5).abs() < 0.001);
-        assert!(!loaded.dark_mode);
         assert_eq!(loaded.auto_save_interval_days, 5);
         assert_eq!(loaded.se_volume, 40);
         assert!(loaded.is_muted);

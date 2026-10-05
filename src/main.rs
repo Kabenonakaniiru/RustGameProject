@@ -25,12 +25,6 @@ fn main() -> eframe::Result<()> {
         options,
         Box::new(|cc| {
             font::setup_fonts(&cc.egui_ctx);
-            // 保存済みユーザー設定のテーマを起動時に適用
-            if settings.dark_mode {
-                cc.egui_ctx.set_visuals(eframe::egui::Visuals::dark());
-            } else {
-                cc.egui_ctx.set_visuals(eframe::egui::Visuals::light());
-            }
             Ok(Box::new(GuildApp::new()))
         }),
     )
