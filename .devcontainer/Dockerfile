@@ -24,4 +24,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         fonts-ipafont \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Cargo ツール群（ライセンス調査用）
+RUN cargo install cargo-license
+
 WORKDIR /workspace
