@@ -19,6 +19,9 @@ all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
 
+# メモリコピー・ポインタ複製の明確化（restriction から個別昇格）
+clone_on_ref_ptr = "warn"
+
 # UI/ゲーム開発向けにノイズになる項目を許容
 cast_possible_truncation = "allow"
 cast_precision_loss = "allow"
