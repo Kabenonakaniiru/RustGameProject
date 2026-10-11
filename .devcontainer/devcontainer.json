@@ -20,10 +20,11 @@
     "vscode": {
       "extensions": [
         "rust-lang.rust-analyzer",
-        "tamasfe.even-better-toml"
+        "tamasfe.even-better-toml",
+        "vadimcn.vscode-lldb"
       ]
     }
   },
   "remoteUser": "vscode",
-  "postCreateCommand": "mkdir -p ~/.gemini/antigravity-cli && sudo chown -R $(whoami) ~/.gemini && sudo apt update && sudo apt install -y fonts-ipafont-gothic && rustup target add x86_64-pc-windows-msvc && cargo install cargo-xwin cargo-license && curl -fsSL https://antigravity.google/cli/install.sh | bash"
+  "postCreateCommand": "mkdir -p ~/.gemini/antigravity-cli && sudo chown -R $(whoami) ~/.gemini && curl -fsSL https://antigravity.google/cli/install.sh | bash"
 }

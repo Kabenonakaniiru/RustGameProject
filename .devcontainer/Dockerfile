@@ -22,9 +22,13 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         libglx-mesa0 \
         mesa-vulkan-drivers \
         fonts-ipafont \
+        fonts-ipafont-gothic \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Cargo ツール群（ライセンス調査用）
-RUN cargo install cargo-license
+# Windows向けクロスコンパイルターゲット
+RUN rustup target add x86_64-pc-windows-msvc
+
+# Cargo ツール群（Windowsクロスビルド用、ライセンス調査用）
+RUN cargo install cargo-xwin cargo-license
 
 WORKDIR /workspace
