@@ -16,7 +16,7 @@ pub use guild_rank::{GuildRank, PromotionRequirement};
 pub use inventory::InventoryItem;
 pub use meta::{HallOfFameAdventurer, MetaState};
 pub use party::{Party, MAX_PARTY_MEMBERS};
-pub use quest::{ClientFaction, Quest, QuestDifficulty, QuestOutcomeType, QuestResolution};
+pub use quest::{ClientFaction, Quest, QuestDifficulty, QuestOutcomeType, QuestReport, QuestResolution};
 pub use state::GameState;
 pub use training::{Instructor, TrainingDojo};
 
@@ -276,5 +276,59 @@ mod tests {
         }
         // 15日目の advance_day で昇格チェックが自動発火
         assert_eq!(state.guild_rank, GuildRank::E);
+    }
+
+    #[test]
+    fn test_party_management_and_quest_report() {
+        let mut state = GameState::new_default();
+
+        // 1. 新部隊を結成
+        let new_party_id = state.create_party("第二精鋭分隊").expect("Party creation should succeed");
+        assert_eq!(state.parties.len(), 2);
+        assert_eq!(state.parties[1].id, new_party_id);
+        assert_eq!(state.parties[1].name, "第二精鋭分隊");
+
+        // 2. 待機中冒険者（ID 5: クルト）を配属
+        assert!(state.parties[1].member_ids.is_empty());
+        state.add_party_member(new_party_id, 5).expect("Should add Kuruto to party");
+        assert_eq!(state.parties[1].member_ids, vec![5]);
+        assert_eq!(state.get_adventurer_party(5).map(|p| p.id), Some(new_party_id));
+
+        // 3. 既に第一遊撃小隊に所属している冒険者（ID 1: アレン）を二重配属しようとするとエラー
+        let dup_res = state.add_party_member(new_party_id, 1);
+        assert!(dup_res.is_err());
+
+        // 4. メンバー除外
+        state.remove_party_member(new_party_id, 5).expect("Should remove member");
+        assert!(state.parties[1].member_ids.is_empty());
+
+        // 5. 部隊解散
+        state.disband_party(new_party_id).expect("Should disband empty standby party");
+        assert_eq!(state.parties.len(), 1);
+
+        // 6. クエスト派遣と完了報告の生成
+        assert!(state.latest_quest_reports.is_empty());
+        let party_id = state.parties[0].id;
+        state.dispatch_quest_party(0, party_id).expect("Dispatch should succeed");
+        assert!(state.is_party_on_quest(party_id));
+
+        // 派遣中の部隊は解散できない
+        assert!(state.disband_party(party_id).is_err());
+
+        // クエスト所要日数分進めて完了
+        let days = state.quests[0].days_required;
+        for _ in 0..days {
+            state.advance_day();
+        }
+
+        // 完了報告（QuestReport）が生成されていること
+        assert_eq!(state.latest_quest_reports.len(), 1);
+        let report = &state.latest_quest_reports[0];
+        assert_eq!(report.quest_title, "ゴブリンの森の掃討");
+        assert_eq!(report.party_name, "第一遊撃小隊");
+
+        // レポートクリアの検証
+        state.clear_quest_reports();
+        assert!(state.latest_quest_reports.is_empty());
     }
 }

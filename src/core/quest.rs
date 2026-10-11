@@ -88,6 +88,33 @@ pub enum QuestOutcomeType {
     Catastrophe,
 }
 
+impl QuestOutcomeType {
+    pub fn name(&self) -> &'static str {
+        match self {
+            QuestOutcomeType::GreatSuccess => "大成功",
+            QuestOutcomeType::Success => "成功",
+            QuestOutcomeType::Failure => "失敗",
+            QuestOutcomeType::Catastrophe => "壊滅（大失敗）",
+        }
+    }
+}
+
+/// クエスト完了結果レポート（UI表示・プレイヤー通知用）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct QuestReport {
+    pub quest_title: String,
+    pub party_name: String,
+    pub outcome: QuestOutcomeType,
+    pub commission: i64,
+    pub fame_gain: u32,
+    pub trust_change: i32,
+    pub loot_items: Vec<String>,
+    pub injured_names: Vec<(String, u32)>,
+    pub fallen_names: Vec<String>,
+    pub log_summary: String,
+    pub completed_day: u32,
+}
+
 /// クエスト定義
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Quest {

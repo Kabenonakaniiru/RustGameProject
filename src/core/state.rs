@@ -10,7 +10,7 @@ use super::guild_rank::{GuildRank, PromotionRequirement};
 use super::inventory::InventoryItem;
 use super::meta::HallOfFameAdventurer;
 use super::party::Party;
-use super::quest::{ClientFaction, Quest, QuestDifficulty};
+use super::quest::{ClientFaction, Quest, QuestDifficulty, QuestReport};
 use super::training::TrainingDojo;
 
 pub const DAYS_PER_YEAR: u32 = 365;
@@ -50,6 +50,10 @@ pub struct GameState {
 
     // ギルド全体のクエスト完了累計
     pub total_quests_completed: u32,
+
+    // 直近のクエスト完了報告（UI通知用）
+    #[serde(default)]
+    pub latest_quest_reports: Vec<QuestReport>,
 
     // 月次監査
     pub audit: MonthlyAudit,
@@ -248,6 +252,7 @@ impl GameState {
             total_commission: 0,
             total_expenses: 0,
             total_quests_completed: 0,
+            latest_quest_reports: Vec::new(),
             audit: MonthlyAudit::new(),
             game_over: false,
             game_cleared: false,
@@ -398,7 +403,9 @@ impl GameState {
             *current_trust = (*current_trust + resolution.trust_change).clamp(-100, 100);
 
             // 戦利品の入庫
+            let mut loot_items = Vec::new();
             for item in resolution.loot_items {
+                loot_items.push(item.name.clone());
                 self.inventory.push(item);
             }
 
@@ -406,10 +413,12 @@ impl GameState {
             self.add_log(&resolution.log_summary);
 
             // 負傷者の反映
+            let mut injured_names = Vec::new();
             let mut injured_logs = Vec::new();
             for (adv_id, days) in resolution.injured_member_ids {
                 if let Some(adv) = self.adventurers.iter_mut().find(|a| a.id == adv_id) {
                     adv.status = AdventurerStatus::Injured { days_remaining: days };
+                    injured_names.push((adv.name.clone(), days));
                     injured_logs.push(format!(
                         "【療養入院】{} はクエストでの負傷により {} 日間の療養に入ります。",
                         adv.name, days
@@ -421,10 +430,12 @@ impl GameState {
             }
 
             // 戦死者の反映
+            let mut fallen_names = Vec::new();
             let mut fallen_logs = Vec::new();
             for adv_id in resolution.fallen_member_ids {
                 if let Some(pos) = self.adventurers.iter().position(|a| a.id == adv_id) {
                     let adv = &mut self.adventurers[pos];
+                    fallen_names.push(adv.name.clone());
                     adv.status = AdventurerStatus::Fallen {
                         cause: DeathCause::KilledInAction(quest_title.clone()),
                         day: self.day,
@@ -459,6 +470,22 @@ impl GameState {
                     }
                 }
             }
+
+            // 直近のクエスト完了報告を記録（UI通知用）
+            let party_name = self.parties[p_idx].name.clone();
+            self.latest_quest_reports.push(QuestReport {
+                quest_title,
+                party_name,
+                outcome: resolution.outcome,
+                commission: resolution.guild_commission,
+                fame_gain: resolution.fame_gain,
+                trust_change: resolution.trust_change,
+                loot_items,
+                injured_names,
+                fallen_names,
+                log_summary: resolution.log_summary,
+                completed_day: self.day,
+            });
         }
     }
 
@@ -542,6 +569,129 @@ impl GameState {
                 }
             }
         }
+    }
+
+    /// 新規部隊（パーティ）を結成する
+    pub fn create_party(&mut self, name: impl Into<String>) -> Result<u64, &'static str> {
+        let name_str = name.into();
+        let trimmed = name_str.trim();
+        if trimmed.is_empty() {
+            return Err("部隊名を入力してください");
+        }
+        if self.parties.len() >= 8 {
+            return Err("部隊数が上限（8部隊）に達しています");
+        }
+
+        let new_id = self.parties.iter().map(|p| p.id).max().unwrap_or(0) + 1;
+        let party = Party::new(new_id, trimmed);
+        self.parties.push(party);
+        self.add_log(format!("【部隊結成】新たな部隊『{}』が結成されました。", trimmed));
+        Ok(new_id)
+    }
+
+    /// 部隊（パーティ）を解散する
+    pub fn disband_party(&mut self, party_id: u64) -> Result<(), &'static str> {
+        if self.is_party_on_quest(party_id) {
+            return Err("出撃中の部隊は解散できません");
+        }
+
+        let pos = self
+            .parties
+            .iter()
+            .position(|p| p.id == party_id)
+            .ok_or("部隊が見つかりません")?;
+
+        let party_name = self.parties[pos].name.clone();
+        self.parties.remove(pos);
+        self.add_log(format!("【部隊解散】部隊『{}』が解散されました。", party_name));
+        Ok(())
+    }
+
+    /// 冒険者を部隊（パーティ）に配属する
+    pub fn add_party_member(&mut self, party_id: u64, adventurer_id: u64) -> Result<(), &'static str> {
+        // 冒険者の存在と状態チェック
+        let adv_name = {
+            let adv = self
+                .adventurers
+                .iter()
+                .find(|a| a.id == adventurer_id)
+                .ok_or("冒険者が見つかりません")?;
+            if !adv.status.is_available() {
+                return Err("待機中以外の冒険者は部隊に配属できません");
+            }
+            adv.name.clone()
+        };
+
+        // 既に他の部隊に所属していないか確認
+        if let Some(existing_party) = self.parties.iter().find(|p| p.member_ids.contains(&adventurer_id)) {
+            if existing_party.id == party_id {
+                return Err("既にこの部隊に配属されています");
+            } else {
+                return Err("既に別の部隊に所属しています（まず現在の部隊から外してください）");
+            }
+        }
+
+        // 対象パーティの確認と追加
+        let party = self
+            .parties
+            .iter_mut()
+            .find(|p| p.id == party_id)
+            .ok_or("部隊が見つかりません")?;
+
+        party.add_member(adventurer_id)?;
+        let party_name = party.name.clone();
+
+        self.add_log(format!(
+            "【部隊編成】{} が部隊『{}』に配属されました。",
+            adv_name, party_name
+        ));
+        Ok(())
+    }
+
+    /// 冒険者を部隊（パーティ）から除外する
+    pub fn remove_party_member(&mut self, party_id: u64, adventurer_id: u64) -> Result<(), &'static str> {
+        if self.is_party_on_quest(party_id) {
+            return Err("出撃中の部隊からはメンバーを除外できません");
+        }
+
+        let adv_name = self
+            .adventurers
+            .iter()
+            .find(|a| a.id == adventurer_id)
+            .map(|a| a.name.clone())
+            .unwrap_or_else(|| format!("ID:{}", adventurer_id));
+
+        let party = self
+            .parties
+            .iter_mut()
+            .find(|p| p.id == party_id)
+            .ok_or("部隊が見つかりません")?;
+
+        if !party.remove_member(adventurer_id) {
+            return Err("冒険者はこの部隊に所属していません");
+        }
+
+        let party_name = party.name.clone();
+        self.add_log(format!(
+            "【部隊編成】{} が部隊『{}』から外れました。",
+            adv_name, party_name
+        ));
+        Ok(())
+    }
+
+    /// 冒険者が所属している部隊を取得
+    pub fn get_adventurer_party(&self, adventurer_id: u64) -> Option<&Party> {
+        self.parties.iter().find(|p| p.member_ids.contains(&adventurer_id))
+    }
+
+    /// 部隊が現在クエストに出撃中かどうか
+    pub fn is_party_on_quest(&self, party_id: u64) -> bool {
+        self.quests.iter().any(|q| q.is_dispatched && q.assigned_party_id == Some(party_id))
+    }
+
+    /// クエスト完了報告をすべて消去（確認完了）
+    pub fn clear_quest_reports(&mut self) {
+        self.latest_quest_reports.clear();
     }
 
     /// パーティをクエストに派遣する（新設計）
