@@ -18,17 +18,17 @@ pub enum AuditResult {
 }
 
 impl AuditResult {
-    pub fn display_name(&self) -> &'static str {
+    pub const fn display_name(&self) -> &'static str {
         match self {
-            AuditResult::Pass => "合格",
-            AuditResult::Warning => "警告",
-            AuditResult::Fail => "未達",
+            Self::Pass => "合格",
+            Self::Warning => "警告",
+            Self::Fail => "未達",
         }
     }
 }
 
 /// 月次監査の詳細レポート
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AuditReport {
     pub result: AuditResult,
     pub audit_day: u32,
@@ -41,7 +41,7 @@ pub struct AuditReport {
 }
 
 /// 月次監査の状態管理
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MonthlyAudit {
     /// 前回監査日
     pub last_audit_day: u32,
@@ -60,7 +60,7 @@ impl Default for MonthlyAudit {
 }
 
 impl MonthlyAudit {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             last_audit_day: 0,
             quests_completed_this_period: 0,
@@ -70,12 +70,12 @@ impl MonthlyAudit {
     }
 
     /// クエスト完了を記録（期間中の累計）
-    pub fn record_quest_completion(&mut self) {
+    pub const fn record_quest_completion(&mut self) {
         self.quests_completed_this_period += 1;
     }
 
     /// 監査が必要かチェック（30日周期）
-    pub fn is_audit_due(&self, current_day: u32) -> bool {
+    pub const fn is_audit_due(&self, current_day: u32) -> bool {
         // 初回は30日目、以降30日ごと
         current_day > 0 && current_day >= self.last_audit_day + AUDIT_PERIOD_DAYS
     }
@@ -111,8 +111,7 @@ impl MonthlyAudit {
                 AuditResult::Pass,
                 tribute_required,
                 format!(
-                    "【月次監査・合格】上納金 {}G を冒険者連盟に納付。クエスト実績 {}/{} 件達成。引き続き良好な運営を期待します。",
-                    tribute_required, quests_done, quests_required
+                    "【月次監査・合格】上納金 {tribute_required}G を冒険者連盟に納付。クエスト実績 {quests_done}/{quests_required} 件達成。引き続き良好な運営を期待します。"
                 ),
             )
         } else if can_pay_tribute && !quests_met && quests_done > 0 {
@@ -165,17 +164,13 @@ impl MonthlyAudit {
     }
 
     /// ゲームオーバー判定（連続未達が上限に達したか）
-    pub fn is_game_over(&self) -> bool {
+    pub const fn is_game_over(&self) -> bool {
         self.consecutive_failures >= MAX_CONSECUTIVE_FAILURES
     }
 
     /// 次回監査までの残り日数
-    pub fn days_until_next_audit(&self, current_day: u32) -> u32 {
+    pub const fn days_until_next_audit(&self, current_day: u32) -> u32 {
         let next_audit_day = self.last_audit_day + AUDIT_PERIOD_DAYS;
-        if current_day >= next_audit_day {
-            0
-        } else {
-            next_audit_day - current_day
-        }
+        next_audit_day.saturating_sub(current_day)
     }
 }

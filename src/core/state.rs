@@ -263,12 +263,12 @@ impl GameState {
     }
 
     /// 現在の経過年（1年 = 365日）
-    pub fn current_year(&self) -> u32 {
+    pub const fn current_year(&self) -> u32 {
         ((self.day.saturating_sub(1)) / DAYS_PER_YEAR) + 1
     }
 
     /// 年内の経過日数（1〜365日）
-    pub fn day_of_year(&self) -> u32 {
+    pub const fn day_of_year(&self) -> u32 {
         ((self.day.saturating_sub(1)) % DAYS_PER_YEAR) + 1
     }
 
@@ -323,8 +323,7 @@ impl GameState {
         }
         for name in recovered_names {
             self.add_log(format!(
-                "【療養完了】{} の負傷が完治し、前線へ復帰しました！",
-                name
+                "【療養完了】{name} の負傷が完治し、前線へ復帰しました！"
             ));
         }
 
@@ -352,7 +351,7 @@ impl GameState {
         }
 
         // 5. 1年経過（新年に突入したタイミング）の加齢・老衰処理
-        if (self.day - 1) % DAYS_PER_YEAR == 0 && self.day > 1 {
+        if (self.day - 1).is_multiple_of(DAYS_PER_YEAR) && self.day > 1 {
             self.process_yearly_aging();
         }
 
@@ -448,7 +447,7 @@ impl GameState {
                     // 殿堂入り
                     let hall_entry = HallOfFameAdventurer::from_adventurer(
                         adv,
-                        format!("戦死（{}）", quest_title),
+                        format!("戦死（{quest_title}）"),
                         self.day,
                     );
                     self.hall_of_fame.push(hall_entry);
@@ -463,12 +462,11 @@ impl GameState {
 
             // 無事なメンバーは待機中に復帰
             for &m_id in &self.parties[p_idx].member_ids {
-                if let Some(adv) = self.adventurers.iter_mut().find(|a| a.id == m_id) {
-                    if matches!(adv.status, AdventurerStatus::OnQuest { .. }) {
+                if let Some(adv) = self.adventurers.iter_mut().find(|a| a.id == m_id)
+                    && matches!(adv.status, AdventurerStatus::OnQuest { .. }) {
                         adv.status = AdventurerStatus::Standby;
                         adv.completed_quests += 1;
                     }
-                }
             }
 
             // 直近のクエスト完了報告を記録（UI通知用）
@@ -493,8 +491,7 @@ impl GameState {
     fn process_yearly_aging(&mut self) {
         let current_yr = self.current_year();
         self.add_log(format!(
-            "【年末】第 {} 年が経過しました。ギルド員全員が1歳加齢します。",
-            current_yr
+            "【年末】第 {current_yr} 年が経過しました。ギルド員全員が1歳加齢します。"
         ));
 
         let mut deceased_info = Vec::new();
@@ -518,8 +515,7 @@ impl GameState {
                 self.hall_of_fame.push(hall_entry);
             }
             self.add_log(format!(
-                "【老衰永眠】長年ギルドに貢献した {} が天寿を全うし、永眠しました（享年{}）。",
-                name, age
+                "【老衰永眠】長年ギルドに貢献した {name} が天寿を全うし、永眠しました（享年{age}）。"
             ));
 
             // パーティや訓練所からの除外
@@ -538,7 +534,7 @@ impl GameState {
         self.gold -= report.tribute_paid;
         self.total_expenses += report.tribute_paid;
 
-        self.add_log(report.message.clone());
+        self.add_log(report.message);
 
         // 連続未達によるゲームオーバー判定
         if self.audit.is_game_over() {
@@ -549,9 +545,9 @@ impl GameState {
 
     /// ギルドランク昇格の判定と処理
     pub fn check_promotion(&mut self) {
-        if let Some(next_rank) = self.guild_rank.next_rank() {
-            if let Some(req) = PromotionRequirement::for_rank(next_rank) {
-                if req.is_met(self.reputation, &self.faction_trust, self.total_quests_completed, self.day) {
+        if let Some(next_rank) = self.guild_rank.next_rank()
+            && let Some(req) = PromotionRequirement::for_rank(next_rank)
+                && req.is_met(self.reputation, &self.faction_trust, self.total_quests_completed, self.day) {
                     let prev_rank = self.guild_rank;
                     self.guild_rank = next_rank;
 
@@ -567,8 +563,6 @@ impl GameState {
                         self.add_log("【祝・ゲームクリア】伝説のSランクギルドへ到達しました！歴史にその名を刻み、エンディングを迎えます。");
                     }
                 }
-            }
-        }
     }
 
     /// 新規部隊（パーティ）を結成する
@@ -585,7 +579,7 @@ impl GameState {
         let new_id = self.parties.iter().map(|p| p.id).max().unwrap_or(0) + 1;
         let party = Party::new(new_id, trimmed);
         self.parties.push(party);
-        self.add_log(format!("【部隊結成】新たな部隊『{}』が結成されました。", trimmed));
+        self.add_log(format!("【部隊結成】新たな部隊『{trimmed}』が結成されました。"));
         Ok(new_id)
     }
 
@@ -603,7 +597,7 @@ impl GameState {
 
         let party_name = self.parties[pos].name.clone();
         self.parties.remove(pos);
-        self.add_log(format!("【部隊解散】部隊『{}』が解散されました。", party_name));
+        self.add_log(format!("【部隊解散】部隊『{party_name}』が解散されました。"));
         Ok(())
     }
 
@@ -626,9 +620,8 @@ impl GameState {
         if let Some(existing_party) = self.parties.iter().find(|p| p.member_ids.contains(&adventurer_id)) {
             if existing_party.id == party_id {
                 return Err("既にこの部隊に配属されています");
-            } else {
-                return Err("既に別の部隊に所属しています（まず現在の部隊から外してください）");
             }
+            return Err("既に別の部隊に所属しています（まず現在の部隊から外してください）");
         }
 
         // 対象パーティの確認と追加
@@ -642,8 +635,7 @@ impl GameState {
         let party_name = party.name.clone();
 
         self.add_log(format!(
-            "【部隊編成】{} が部隊『{}』に配属されました。",
-            adv_name, party_name
+            "【部隊編成】{adv_name} が部隊『{party_name}』に配属されました。"
         ));
         Ok(())
     }
@@ -657,9 +649,7 @@ impl GameState {
         let adv_name = self
             .adventurers
             .iter()
-            .find(|a| a.id == adventurer_id)
-            .map(|a| a.name.clone())
-            .unwrap_or_else(|| format!("ID:{}", adventurer_id));
+            .find(|a| a.id == adventurer_id).map_or_else(|| format!("ID:{adventurer_id}"), |a| a.name.clone());
 
         let party = self
             .parties
@@ -673,8 +663,7 @@ impl GameState {
 
         let party_name = party.name.clone();
         self.add_log(format!(
-            "【部隊編成】{} が部隊『{}』から外れました。",
-            adv_name, party_name
+            "【部隊編成】{adv_name} が部隊『{party_name}』から外れました。"
         ));
         Ok(())
     }
@@ -728,8 +717,7 @@ impl GameState {
         };
 
         self.add_log(format!(
-            "【部隊派遣】部隊『{}』が『{}』へ出撃しました（所要: {}日）。",
-            party_name, quest_title, days_required
+            "【部隊派遣】部隊『{party_name}』が『{quest_title}』へ出撃しました（所要: {days_required}日）。"
         ));
 
         Ok(())
@@ -747,7 +735,7 @@ impl GameState {
             existing.id
         } else {
             let new_id = (self.parties.len() as u64) + 100;
-            let mut p = Party::new(new_id, format!("{}隊", adventurer_name));
+            let mut p = Party::new(new_id, format!("{adventurer_name}隊"));
             let _ = p.add_member(adv_id);
             self.parties.push(p);
             new_id
@@ -773,8 +761,7 @@ impl GameState {
         }
 
         self.add_log(format!(
-            "【売却】『{}』を1個市場へ売却し、{} G を得ました。",
-            item_name, revenue
+            "【売却】『{item_name}』を1個市場へ売却し、{revenue} G を得ました。"
         ));
 
         Some(revenue)
@@ -792,8 +779,7 @@ impl GameState {
             self.total_sales_revenue += total_earn;
             self.inventory.clear();
             self.add_log(format!(
-                "【一括売却】全在庫を市場へ売却し、合計 {} G を得ました！",
-                total_earn
+                "【一括売却】全在庫を市場へ売却し、合計 {total_earn} G を得ました！"
             ));
         }
 

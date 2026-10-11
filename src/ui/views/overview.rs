@@ -75,7 +75,7 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
         } else {
             egui::Color32::from_rgb(255, 100, 100)
         };
-        ui.colored_label(color, format!("通算純収益: {} G", net_balance));
+        ui.colored_label(color, format!("通算純収益: {net_balance} G"));
     });
 }
 

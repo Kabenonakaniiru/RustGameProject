@@ -27,12 +27,12 @@ impl InventoryItem {
     }
 
     /// 1個あたりの見込利益
-    pub fn unit_profit(&self) -> i64 {
+    pub const fn unit_profit(&self) -> i64 {
         self.market_price - self.buy_price
     }
 
     /// 在庫全体の市場売却額
-    pub fn total_market_value(&self) -> i64 {
+    pub const fn total_market_value(&self) -> i64 {
         self.market_price * (self.count as i64)
     }
 }

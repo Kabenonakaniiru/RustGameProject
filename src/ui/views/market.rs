@@ -8,11 +8,7 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
     ui.add_space(8.0);
 
     let mut sold_index = None;
-    let mut sell_all = false;
-
-    if ui.button("💰 在庫をすべて市場に一括売却する").clicked() {
-        sell_all = true;
-    }
+    let sell_all = ui.button("💰 在庫をすべて市場に一括売却する").clicked();
     ui.add_space(8.0);
 
     egui::Grid::new("inventory_grid")
@@ -37,7 +33,7 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
                 ui.label(format!("{} G", item.market_price));
                 ui.colored_label(
                     egui::Color32::from_rgb(100, 220, 100),
-                    format!("+{} G", profit_per_unit),
+                    format!("+{profit_per_unit} G"),
                 );
 
                 if ui.button("1個売却").clicked() {

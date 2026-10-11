@@ -100,11 +100,11 @@ impl Party {
 
         let leadership_modifier = if command_power >= required_leadership {
             // 指揮が十分に行き届いている場合: ボーナス
-            1.0 + ((command_power - required_leadership) as f32 * 0.02)
+            ((command_power - required_leadership) as f32).mul_add(0.02, 1.0)
         } else {
             // 指揮不足による大部隊の混乱・統率不全ペナルティ
             let shortage = required_leadership - command_power;
-            (1.0 - (shortage as f32 * 0.05)).max(0.3)
+            (shortage as f32).mul_add(-0.05, 1.0).max(0.3)
         };
 
         // 協調スキルによる底上げ

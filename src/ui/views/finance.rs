@@ -33,7 +33,7 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
             ui.end_row();
 
             ui.strong("【総収入合計】");
-            ui.strong(format!("+{} G", total_income));
+            ui.strong(format!("+{total_income} G"));
             ui.end_row();
 
             ui.separator();
@@ -55,12 +55,12 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
             if net_profit >= 0 {
                 ui.colored_label(
                     egui::Color32::from_rgb(100, 220, 100),
-                    format!("+{} G (黒字)", net_profit),
+                    format!("+{net_profit} G (黒字)"),
                 );
             } else {
                 ui.colored_label(
                     egui::Color32::from_rgb(255, 80, 80),
-                    format!("{} G (赤字)", net_profit),
+                    format!("{net_profit} G (赤字)"),
                 );
             }
             ui.end_row();

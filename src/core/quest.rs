@@ -13,11 +13,11 @@ pub enum ClientFaction {
 }
 
 impl ClientFaction {
-    pub fn name(&self) -> &'static str {
+    pub const fn name(&self) -> &'static str {
         match self {
-            ClientFaction::Kingdom => "王宮・騎士団",
-            ClientFaction::Commerce => "商業連盟・商家",
-            ClientFaction::Civilian => "地域・民間自治会",
+            Self::Kingdom => "王宮・騎士団",
+            Self::Commerce => "商業連盟・商家",
+            Self::Civilian => "地域・民間自治会",
         }
     }
 }
@@ -35,28 +35,28 @@ pub enum QuestDifficulty {
 }
 
 impl QuestDifficulty {
-    pub fn name(&self) -> &'static str {
+    pub const fn name(&self) -> &'static str {
         match self {
-            QuestDifficulty::F => "F",
-            QuestDifficulty::E => "E",
-            QuestDifficulty::D => "D",
-            QuestDifficulty::C => "C",
-            QuestDifficulty::B => "B",
-            QuestDifficulty::A => "A",
-            QuestDifficulty::S => "S",
+            Self::F => "F",
+            Self::E => "E",
+            Self::D => "D",
+            Self::C => "C",
+            Self::B => "B",
+            Self::A => "A",
+            Self::S => "S",
         }
     }
 
     /// 要求総合戦闘力・能力スコアの目安
-    pub fn base_target_score(&self) -> u32 {
+    pub const fn base_target_score(&self) -> u32 {
         match self {
-            QuestDifficulty::F => 25,
-            QuestDifficulty::E => 50,
-            QuestDifficulty::D => 100,
-            QuestDifficulty::C => 180,
-            QuestDifficulty::B => 300,
-            QuestDifficulty::A => 500,
-            QuestDifficulty::S => 800,
+            Self::F => 25,
+            Self::E => 50,
+            Self::D => 100,
+            Self::C => 180,
+            Self::B => 300,
+            Self::A => 500,
+            Self::S => 800,
         }
     }
 }
@@ -68,7 +68,7 @@ impl std::fmt::Display for QuestDifficulty {
 }
 
 /// クエスト結果の詳細
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct QuestResolution {
     pub outcome: QuestOutcomeType,
     pub guild_commission: i64,
@@ -89,18 +89,18 @@ pub enum QuestOutcomeType {
 }
 
 impl QuestOutcomeType {
-    pub fn name(&self) -> &'static str {
+    pub const fn name(&self) -> &'static str {
         match self {
-            QuestOutcomeType::GreatSuccess => "大成功",
-            QuestOutcomeType::Success => "成功",
-            QuestOutcomeType::Failure => "失敗",
-            QuestOutcomeType::Catastrophe => "壊滅（大失敗）",
+            Self::GreatSuccess => "大成功",
+            Self::Success => "成功",
+            Self::Failure => "失敗",
+            Self::Catastrophe => "壊滅（大失敗）",
         }
     }
 }
 
 /// クエスト完了結果レポート（UI表示・プレイヤー通知用）
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct QuestReport {
     pub quest_title: String,
     pub party_name: String,
@@ -116,7 +116,7 @@ pub struct QuestReport {
 }
 
 /// クエスト定義
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Quest {
     pub id: u64,
     pub title: String,
@@ -133,6 +133,7 @@ pub struct Quest {
 }
 
 impl Quest {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: u64,
         title: impl Into<String>,
@@ -284,8 +285,8 @@ impl Quest {
             let injured_count = rng.gen_range(1..=2).min(members.len());
             for member in members.iter().take(injured_count) {
                 // 治癒・盾術があれば療養日数が短縮
-                let reduction = (healing_power + shield_power) / 2;
-                let days = (rng.gen_range(2..=5) as i32 - reduction as i32).max(1) as u32;
+                let reduction = u32::midpoint(healing_power, shield_power);
+                let days = (rng.gen_range(2..=5) - reduction as i32).max(1) as u32;
                 injured.push((member.id, days));
             }
 
@@ -326,14 +327,14 @@ impl Quest {
                 }
             }
 
-            let log_msg = if !fallen.is_empty() {
+            let log_msg = if fallen.is_empty() {
                 format!(
-                    "【壊滅的被害】部隊『{}』が『{}』で部隊壊滅！ 尊い犠牲者が発生しました…",
+                    "【重傷退却】部隊『{}』は『{}』で危機に陥りましたが、決死の救護により全員が生還しました。",
                     party.name, self.title
                 )
             } else {
                 format!(
-                    "【重傷退却】部隊『{}』は『{}』で危機に陥りましたが、決死の救護により全員が生還しました。",
+                    "【壊滅的被害】部隊『{}』が『{}』で部隊壊滅！ 尊い犠牲者が発生しました…",
                     party.name, self.title
                 )
             };
@@ -351,7 +352,7 @@ impl Quest {
         }
     }
 
-    fn default_loot_name(&self) -> &'static str {
+    const fn default_loot_name(&self) -> &'static str {
         match self.faction {
             ClientFaction::Kingdom => "魔物の討伐証・牙",
             ClientFaction::Commerce => "高純度鉱石サンプル",

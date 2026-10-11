@@ -18,8 +18,7 @@ impl Instructor {
             .skills
             .iter()
             .max_by_key(|s| s.level)
-            .map(|s| (s.skill_type, s.level))
-            .unwrap_or((SkillType::Swordsmanship, 1));
+            .map_or((SkillType::Swordsmanship, 1), |s| (s.skill_type, s.level));
 
         let mentorship = adv.skill_level(SkillType::Mentorship);
 
@@ -35,7 +34,7 @@ impl Instructor {
 }
 
 /// ギルド付属訓練所（Training Dojo）
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TrainingDojo {
     pub instructors: Vec<Instructor>,
     pub trainee_ids: Vec<u64>,
@@ -101,7 +100,7 @@ impl TrainingDojo {
 
                 // 各教官からの指導ボーナス
                 for inst in &self.instructors {
-                    let mentor_multiplier = 1.0 + (inst.mentorship_level as f32 * 0.15);
+                    let mentor_multiplier = (inst.mentorship_level as f32).mul_add(0.15, 1.0);
                     let gained_exp = ((base_exp + inst.skill_bonus_level * 10) as f32 * mentor_multiplier) as u32;
 
                     let leveled_up = adv.gain_skill_exp(inst.specialty_skill, gained_exp);

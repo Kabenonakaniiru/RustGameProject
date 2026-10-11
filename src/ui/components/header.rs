@@ -1,6 +1,7 @@
 use crate::core::GameState;
 use eframe::egui;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HeaderAction {
     None,
     AdvanceDay,
@@ -84,7 +85,7 @@ pub fn render(
                 } else {
                     egui::Color32::from_rgb(200, 200, 200)
                 };
-                ui.colored_label(audit_color, format!("⚖️ 次回監査まで: 残り {} 日", days_to_audit));
+                ui.colored_label(audit_color, format!("⚖️ 次回監査まで: 残り {days_to_audit} 日"));
 
                 if state.game_over {
                     ui.separator();
@@ -134,11 +135,10 @@ fn render_action_buttons(
     if ui.small_button("➕").on_hover_text("表示を拡大 (Ctrl + +)").clicked() {
         *action = HeaderAction::ZoomIn;
     }
-    if (zoom_factor - 1.0).abs() > 0.01 {
-        if ui.small_button("↺").on_hover_text("100%にリセット (Ctrl + 0)").clicked() {
+    if (zoom_factor - 1.0).abs() > 0.01
+        && ui.small_button("↺").on_hover_text("100%にリセット (Ctrl + 0)").clicked() {
             *action = HeaderAction::ResetZoom;
         }
-    }
 
     if let Some(msg) = status_msg {
         ui.separator();

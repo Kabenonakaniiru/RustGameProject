@@ -17,24 +17,24 @@ pub enum Tab {
 
 impl Tab {
     /// 全タブの定義リスト
-    pub const ALL: [Tab; 6] = [
-        Tab::GuildOverview,
-        Tab::QuestsAndDispatch,
-        Tab::Adventurers,
-        Tab::MarketAndTrading,
-        Tab::StaffAndFacility,
-        Tab::FinancialReport,
+    pub const ALL: [Self; 6] = [
+        Self::GuildOverview,
+        Self::QuestsAndDispatch,
+        Self::Adventurers,
+        Self::MarketAndTrading,
+        Self::StaffAndFacility,
+        Self::FinancialReport,
     ];
 
     /// タブの表示用ラベル（アイコン付き）
-    pub fn label(&self) -> &'static str {
+    pub const fn label(&self) -> &'static str {
         match self {
-            Tab::GuildOverview => "🏛 ギルド基本情報",
-            Tab::QuestsAndDispatch => "📋 受付・クエスト派遣",
-            Tab::Adventurers => "⚔ 冒険者管理",
-            Tab::MarketAndTrading => "📦 倉庫・戦利品売買",
-            Tab::StaffAndFacility => "👥 職員雇用・施設維持",
-            Tab::FinancialReport => "📊 収支台帳",
+            Self::GuildOverview => "🏛 ギルド基本情報",
+            Self::QuestsAndDispatch => "📋 受付・クエスト派遣",
+            Self::Adventurers => "⚔ 冒険者管理",
+            Self::MarketAndTrading => "📦 倉庫・戦利品売買",
+            Self::StaffAndFacility => "👥 職員雇用・施設維持",
+            Self::FinancialReport => "📊 収支台帳",
         }
     }
 }

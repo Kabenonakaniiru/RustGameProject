@@ -7,6 +7,7 @@ pub const DEFAULT_FONT_NAME: &str = "japanese_font";
 const FONT_DATA_BYTES: &[u8] = include_bytes!("../../assets/ipag.ttf");
 
 /// フォントマネージャ・設定ローダー
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FontManager;
 
 impl FontManager {

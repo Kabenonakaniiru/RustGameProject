@@ -30,7 +30,7 @@ impl HallOfFameAdventurer {
 }
 
 /// 周回引継ぎ・全周回共有メタデータ
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct MetaState {
     pub playthrough_count: u32,
     pub highest_guild_rank: String,

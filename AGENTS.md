@@ -114,6 +114,10 @@ src/
     * 描画と状態変更を完全分離する `QuestAction` パターンによる借用安全性。
   * `src/ui/views/adventurers.rs`: 冒険者一覧に所属部隊列を追加、下部に「栄誉の殿堂・追悼録」表示を追加。
   * Unit テスト拡充（19件全パス）: 部隊結成・メンバー配属・除外・二重所属防止・解散、クエスト完了報告書生成・クリア検証テスト。
+* [x] **厳格な Clippy 静的解析・Lints 基盤の導入とコードベース全体のクリーンアップ（2026-10-12 完了）**:
+  * `Cargo.toml`: `[lints.rust]`（`unsafe_code = "deny"`, `missing_debug_implementations = "warn"`）および `[lints.clippy]`（`all`, `pedantic`, `nursery` を有効化、ゲーム・UI向けの過度なノイズ項目のみ allow 調整）。
+  * コード全体のリファクタリング: Rust 2024 イディオム（`&& let`、`std::io::Error::other`、`uninlined_format_args`、`vec!` 最適化、`#[derive(Debug)]` の網羅等）。
+  * 全ターゲット（テスト含む）で `cargo clippy --all-targets -- -D warnings` がゼロ警告・ゼロエラーでパスすることを確立。
 
 ---
 

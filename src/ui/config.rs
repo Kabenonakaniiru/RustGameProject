@@ -31,32 +31,32 @@ pub enum WindowSizePreset {
 }
 
 impl WindowSizePreset {
-    pub const ALL: [WindowSizePreset; 4] = [
-        WindowSizePreset::Compact,
-        WindowSizePreset::Standard,
-        WindowSizePreset::Large,
-        WindowSizePreset::FullHd,
+    pub const ALL: [Self; 4] = [
+        Self::Compact,
+        Self::Standard,
+        Self::Large,
+        Self::FullHd,
     ];
 
     /// プリセットの幅と高さを取得
-    pub fn size(&self) -> [f32; 2] {
+    pub const fn size(&self) -> [f32; 2] {
         match self {
-            WindowSizePreset::Compact => [1024.0, 640.0],
-            WindowSizePreset::Standard => [DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT],
-            WindowSizePreset::Large => [1600.0, 900.0],
-            WindowSizePreset::FullHd => [1920.0, 1080.0],
-            WindowSizePreset::Custom(w, h) => [*w, *h],
+            Self::Compact => [1024.0, 640.0],
+            Self::Standard => [DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT],
+            Self::Large => [1600.0, 900.0],
+            Self::FullHd => [1920.0, 1080.0],
+            Self::Custom(w, h) => [*w, *h],
         }
     }
 
     /// 表示用ラベル
-    pub fn label(&self) -> &'static str {
+    pub const fn label(&self) -> &'static str {
         match self {
-            WindowSizePreset::Compact => "コンパクト (1024x640)",
-            WindowSizePreset::Standard => "標準 (1400x800)",
-            WindowSizePreset::Large => "ラージ (1600x900)",
-            WindowSizePreset::FullHd => "フルHD (1920x1080)",
-            WindowSizePreset::Custom(_, _) => "カスタム解像度",
+            Self::Compact => "コンパクト (1024x640)",
+            Self::Standard => "標準 (1400x800)",
+            Self::Large => "ラージ (1600x900)",
+            Self::FullHd => "フルHD (1920x1080)",
+            Self::Custom(_, _) => "カスタム解像度",
         }
     }
 
@@ -73,10 +73,10 @@ impl WindowSizePreset {
     /// 文字列からのパース（環境変数等で使用）
     pub fn from_str_name(s: &str) -> Option<Self> {
         match s.to_ascii_lowercase().as_str() {
-            "compact" | "small" => Some(WindowSizePreset::Compact),
-            "standard" | "default" => Some(WindowSizePreset::Standard),
-            "large" => Some(WindowSizePreset::Large),
-            "fullhd" | "1080p" => Some(WindowSizePreset::FullHd),
+            "compact" | "small" => Some(Self::Compact),
+            "standard" | "default" => Some(Self::Standard),
+            "large" => Some(Self::Large),
+            "fullhd" | "1080p" => Some(Self::FullHd),
             _ => None,
         }
     }
@@ -129,19 +129,18 @@ impl UserSettings {
     /// 設定をローカルJSONファイルに保存
     pub fn save_to_file(&self, path: &str) -> Result<(), String> {
         let json = serde_json::to_string_pretty(self)
-            .map_err(|e| format!("設定のシリアライズに失敗: {}", e))?;
+            .map_err(|e| format!("設定のシリアライズに失敗: {e}"))?;
         std::fs::write(path, json)
-            .map_err(|e| format!("設定ファイルの書き込みに失敗 ({}): {}", path, e))?;
+            .map_err(|e| format!("設定ファイルの書き込みに失敗 ({path}): {e}"))?;
         Ok(())
     }
 
     /// ローカルJSONファイルから設定を読み込み（存在しない場合や破損時はデフォルト）
     pub fn load_from_file_or_default(path: &str) -> Self {
-        if let Ok(content) = std::fs::read_to_string(path) {
-            if let Ok(settings) = serde_json::from_str::<UserSettings>(&content) {
+        if let Ok(content) = std::fs::read_to_string(path)
+            && let Ok(settings) = serde_json::from_str::<Self>(&content) {
                 return settings;
             }
-        }
         Self::default()
     }
 }
@@ -172,7 +171,7 @@ impl Default for WindowConfig {
 
 impl WindowConfig {
     /// 新しいウィンドウ設定を生成
-    pub fn new(title: &'static str, width: f32, height: f32) -> Self {
+    pub const fn new(title: &'static str, width: f32, height: f32) -> Self {
         Self {
             title,
             default_size: [width, height],
@@ -192,7 +191,7 @@ impl WindowConfig {
     }
 
     /// ユーザー環境設定からウィンドウ設定を生成
-    pub fn from_user_settings(settings: &UserSettings) -> Self {
+    pub const fn from_user_settings(settings: &UserSettings) -> Self {
         Self {
             title: APP_TITLE,
             default_size: settings.window_preset.size(),
@@ -229,11 +228,10 @@ impl WindowConfig {
         let mut config = Self::from_user_settings(settings);
 
         // プリセット指定の確認
-        if let Some(preset_str) = get_var("GUILD_WINDOW_PRESET") {
-            if let Some(preset) = WindowSizePreset::from_str_name(&preset_str) {
+        if let Some(preset_str) = get_var("GUILD_WINDOW_PRESET")
+            && let Some(preset) = WindowSizePreset::from_str_name(&preset_str) {
                 config.default_size = preset.size();
             }
-        }
 
         // 個別幅・高さ指定の確認（プリセット指定より優先）
         let w_res = get_var("GUILD_WINDOW_WIDTH").and_then(|v| v.parse::<f32>().ok());
@@ -256,13 +254,15 @@ impl WindowConfig {
     }
 
     /// サイズ変更可否を設定
-    pub fn with_resizable(mut self, resizable: bool) -> Self {
+    #[must_use]
+    pub const fn with_resizable(mut self, resizable: bool) -> Self {
         self.resizable = resizable;
         self
     }
 
     /// フルスクリーン可否を設定
-    pub fn with_fullscreen(mut self, fullscreen: bool) -> Self {
+    #[must_use]
+    pub const fn with_fullscreen(mut self, fullscreen: bool) -> Self {
         self.fullscreen = fullscreen;
         self
     }

@@ -5,12 +5,19 @@ use eframe::egui;
 
 const SAVE_FILE_PATH: &str = "save_data.json";
 
+#[derive(Debug)]
 pub struct GuildApp {
     pub state: GameState,
     pub current_tab: Tab,
     pub status_message: Option<String>,
     pub settings: UserSettings,
     pub is_settings_open: bool,
+}
+
+impl Default for GuildApp {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl GuildApp {
@@ -28,12 +35,12 @@ impl GuildApp {
     pub fn save(&mut self) {
         match core::save_game(&self.state, SAVE_FILE_PATH) {
             Ok(()) => {
-                let msg = format!("💾 データを保存しました ({})", SAVE_FILE_PATH);
+                let msg = format!("💾 データを保存しました ({SAVE_FILE_PATH})");
                 self.state.add_log(&msg);
                 self.status_message = Some(msg);
             }
             Err(e) => {
-                let msg = format!("❌ セーブ失敗: {}", e);
+                let msg = format!("❌ セーブ失敗: {e}");
                 self.status_message = Some(msg);
             }
         }
@@ -43,12 +50,12 @@ impl GuildApp {
         match core::load_game(SAVE_FILE_PATH) {
             Ok(loaded_state) => {
                 self.state = loaded_state;
-                let msg = format!("📂 データを読み込みました ({})", SAVE_FILE_PATH);
+                let msg = format!("📂 データを読み込みました ({SAVE_FILE_PATH})");
                 self.state.add_log(&msg);
                 self.status_message = Some(msg);
             }
             Err(e) => {
-                let msg = format!("❌ ロード失敗: {}", e);
+                let msg = format!("❌ ロード失敗: {e}");
                 self.status_message = Some(msg);
             }
         }

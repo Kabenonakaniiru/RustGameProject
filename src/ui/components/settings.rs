@@ -2,6 +2,7 @@ use crate::ui::config::{UserSettings, WindowSizePreset, SETTINGS_FILE_PATH};
 use eframe::egui;
 
 /// 設定メニューの描画結果（app.rs 側で処理するアクション）
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SettingsAction {
     /// 何もしない
     None,
@@ -139,7 +140,7 @@ pub fn render(
                     if settings.auto_save_interval_days == 0 {
                         ui.small("⚠️ オートセーブが無効です。手動セーブを忘れずに！");
                     } else {
-                        ui.small(&format!(
+                        ui.small(format!(
                             "✅ {} 日ごとに自動保存されます。",
                             settings.auto_save_interval_days
                         ));
@@ -159,12 +160,11 @@ pub fn render(
                         match settings.save_to_file(SETTINGS_FILE_PATH) {
                             Ok(()) => {
                                 *status_msg = Some(format!(
-                                    "💾 設定を保存しました ({})",
-                                    SETTINGS_FILE_PATH
+                                    "💾 設定を保存しました ({SETTINGS_FILE_PATH})"
                                 ));
                             }
                             Err(e) => {
-                                *status_msg = Some(format!("❌ 設定保存失敗: {}", e));
+                                *status_msg = Some(format!("❌ 設定保存失敗: {e}"));
                             }
                         }
                     }

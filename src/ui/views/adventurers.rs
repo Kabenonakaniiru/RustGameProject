@@ -29,9 +29,7 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
 
                 // 所属部隊の表示
                 let party_name = state
-                    .get_adventurer_party(adv.id)
-                    .map(|p| format!("『{}』", p.name))
-                    .unwrap_or_else(|| "（無所属）".to_string());
+                    .get_adventurer_party(adv.id).map_or_else(|| "（無所属）".to_string(), |p| format!("『{}』", p.name));
                 if party_name == "（無所属）" {
                     ui.colored_label(egui::Color32::from_rgb(160, 160, 160), party_name);
                 } else {

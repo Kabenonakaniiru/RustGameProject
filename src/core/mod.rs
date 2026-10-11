@@ -29,7 +29,7 @@ pub fn save_game(state: &GameState, path: impl AsRef<Path>) -> Result<(), std::i
     let file = File::create(path)?;
     let writer = BufWriter::new(file);
     serde_json::to_writer_pretty(writer, state)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        .map_err(std::io::Error::other)?;
     Ok(())
 }
 
@@ -38,7 +38,7 @@ pub fn load_game(path: impl AsRef<Path>) -> Result<GameState, std::io::Error> {
     let file = File::open(path)?;
     let reader = BufReader::new(file);
     let state = serde_json::from_reader(reader)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        .map_err(std::io::Error::other)?;
     Ok(state)
 }
 

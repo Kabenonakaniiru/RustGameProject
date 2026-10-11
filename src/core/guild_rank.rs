@@ -4,7 +4,9 @@ use super::quest::ClientFaction;
 
 /// ギルドランク（F → E → D → C → B → A → S の7段階）
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Default)]
 pub enum GuildRank {
+    #[default]
     F,
     E,
     D,
@@ -16,67 +18,67 @@ pub enum GuildRank {
 
 impl GuildRank {
     /// 表示名
-    pub fn display_name(&self) -> &'static str {
+    pub const fn display_name(&self) -> &'static str {
         match self {
-            GuildRank::F => "F（見習い）",
-            GuildRank::E => "E（銅級）",
-            GuildRank::D => "D（鉄級）",
-            GuildRank::C => "C（銀級）",
-            GuildRank::B => "B（金級）",
-            GuildRank::A => "A（白金級）",
-            GuildRank::S => "S（伝説級）",
+            Self::F => "F（見習い）",
+            Self::E => "E（銅級）",
+            Self::D => "D（鉄級）",
+            Self::C => "C（銀級）",
+            Self::B => "B（金級）",
+            Self::A => "A（白金級）",
+            Self::S => "S（伝説級）",
         }
     }
 
     /// ランク記号（短縮表示）
-    pub fn symbol(&self) -> &'static str {
+    pub const fn symbol(&self) -> &'static str {
         match self {
-            GuildRank::F => "F",
-            GuildRank::E => "E",
-            GuildRank::D => "D",
-            GuildRank::C => "C",
-            GuildRank::B => "B",
-            GuildRank::A => "A",
-            GuildRank::S => "S",
+            Self::F => "F",
+            Self::E => "E",
+            Self::D => "D",
+            Self::C => "C",
+            Self::B => "B",
+            Self::A => "A",
+            Self::S => "S",
         }
     }
 
     /// 次のランク（Sランクの場合はNone）
-    pub fn next_rank(&self) -> Option<GuildRank> {
+    pub const fn next_rank(&self) -> Option<Self> {
         match self {
-            GuildRank::F => Some(GuildRank::E),
-            GuildRank::E => Some(GuildRank::D),
-            GuildRank::D => Some(GuildRank::C),
-            GuildRank::C => Some(GuildRank::B),
-            GuildRank::B => Some(GuildRank::A),
-            GuildRank::A => Some(GuildRank::S),
-            GuildRank::S => None,
+            Self::F => Some(Self::E),
+            Self::E => Some(Self::D),
+            Self::D => Some(Self::C),
+            Self::C => Some(Self::B),
+            Self::B => Some(Self::A),
+            Self::A => Some(Self::S),
+            Self::S => None,
         }
     }
 
     /// 月次監査の上納金額
-    pub fn monthly_tribute(&self) -> i64 {
+    pub const fn monthly_tribute(&self) -> i64 {
         match self {
-            GuildRank::F => 100,
-            GuildRank::E => 200,
-            GuildRank::D => 400,
-            GuildRank::C => 800,
-            GuildRank::B => 1500,
-            GuildRank::A => 3000,
-            GuildRank::S => 5000,
+            Self::F => 100,
+            Self::E => 200,
+            Self::D => 400,
+            Self::C => 800,
+            Self::B => 1500,
+            Self::A => 3000,
+            Self::S => 5000,
         }
     }
 
     /// 月次監査の最低クエスト完了要件
-    pub fn monthly_quest_requirement(&self) -> u32 {
+    pub const fn monthly_quest_requirement(&self) -> u32 {
         match self {
-            GuildRank::F => 1,
-            GuildRank::E => 2,
-            GuildRank::D => 3,
-            GuildRank::C => 4,
-            GuildRank::B => 5,
-            GuildRank::A => 6,
-            GuildRank::S => 8,
+            Self::F => 1,
+            Self::E => 2,
+            Self::D => 3,
+            Self::C => 4,
+            Self::B => 5,
+            Self::A => 6,
+            Self::S => 8,
         }
     }
 }
@@ -87,11 +89,6 @@ impl std::fmt::Display for GuildRank {
     }
 }
 
-impl Default for GuildRank {
-    fn default() -> Self {
-        GuildRank::F
-    }
-}
 
 /// 昇格に必要な条件
 #[derive(Debug, Clone)]
@@ -232,24 +229,22 @@ impl PromotionRequirement {
         total_quests: u32,
         current_day: u32,
     ) -> Vec<(String, u32, u32)> {
-        let mut items = Vec::new();
-
-        items.push((
-            "総合名声".to_string(),
-            reputation.min(self.required_reputation),
-            self.required_reputation,
-        ));
-        items.push((
-            "クエスト完了数".to_string(),
-            total_quests.min(self.required_total_quests),
-            self.required_total_quests,
-        ));
-        items.push((
-            "経過日数".to_string(),
-            current_day.min(self.required_min_days),
-            self.required_min_days,
-        ));
-
-        items
+        vec![
+            (
+                "総合名声".to_string(),
+                reputation.min(self.required_reputation),
+                self.required_reputation,
+            ),
+            (
+                "クエスト完了数".to_string(),
+                total_quests.min(self.required_total_quests),
+                self.required_total_quests,
+            ),
+            (
+                "経過日数".to_string(),
+                current_day.min(self.required_min_days),
+                self.required_min_days,
+            ),
+        ]
     }
 }

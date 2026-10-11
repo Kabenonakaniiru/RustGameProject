@@ -14,7 +14,7 @@ pub struct Stats {
 }
 
 impl Stats {
-    pub fn new(
+    pub const fn new(
         max_hp: u32,
         strength: u32,
         defense: u32,
@@ -80,22 +80,22 @@ pub enum SkillType {
 }
 
 impl SkillType {
-    pub fn name(&self) -> &'static str {
+    pub const fn name(&self) -> &'static str {
         match self {
-            SkillType::Swordsmanship => "剣術",
-            SkillType::Shieldwork => "盾術",
-            SkillType::Archery => "弓術",
-            SkillType::MartialArts => "体術",
-            SkillType::AttackMagic => "攻撃魔法",
-            SkillType::HealingMagic => "治癒魔法",
-            SkillType::SupportMagic => "支援魔法",
-            SkillType::Scouting => "斥候術",
-            SkillType::DisarmTrap => "罠解除",
-            SkillType::Herbalism => "薬草採取",
-            SkillType::Mining => "鉱石採掘",
-            SkillType::Tactics => "戦術指揮",
-            SkillType::Cooperation => "連携協調",
-            SkillType::Mentorship => "指導術",
+            Self::Swordsmanship => "剣術",
+            Self::Shieldwork => "盾術",
+            Self::Archery => "弓術",
+            Self::MartialArts => "体術",
+            Self::AttackMagic => "攻撃魔法",
+            Self::HealingMagic => "治癒魔法",
+            Self::SupportMagic => "支援魔法",
+            Self::Scouting => "斥候術",
+            Self::DisarmTrap => "罠解除",
+            Self::Herbalism => "薬草採取",
+            Self::Mining => "鉱石採掘",
+            Self::Tactics => "戦術指揮",
+            Self::Cooperation => "連携協調",
+            Self::Mentorship => "指導術",
         }
     }
 }
@@ -109,7 +109,7 @@ pub struct Skill {
 }
 
 impl Skill {
-    pub fn new(skill_type: SkillType, level: u32) -> Self {
+    pub const fn new(skill_type: SkillType, level: u32) -> Self {
         Self {
             skill_type,
             level,
@@ -118,7 +118,7 @@ impl Skill {
     }
 
     /// 経験値加算とレベルアップ判定（Lv10上限）
-    pub fn add_exp(&mut self, amount: u32) -> bool {
+    pub const fn add_exp(&mut self, amount: u32) -> bool {
         if self.level >= 10 {
             return false;
         }
@@ -153,20 +153,20 @@ pub enum AdventurerStatus {
 }
 
 impl AdventurerStatus {
-    pub fn is_available(&self) -> bool {
-        matches!(self, AdventurerStatus::Standby)
+    pub const fn is_available(&self) -> bool {
+        matches!(self, Self::Standby)
     }
 
     pub fn display_name(&self) -> String {
         match self {
-            AdventurerStatus::Standby => "待機中".to_string(),
-            AdventurerStatus::OnQuest { .. } => "派遣中".to_string(),
-            AdventurerStatus::Training => "訓練中".to_string(),
-            AdventurerStatus::Injured { days_remaining } => format!("療養中（残{}日）", days_remaining),
-            AdventurerStatus::Retired => "引退".to_string(),
-            AdventurerStatus::Fallen { cause, day } => match cause {
-                DeathCause::KilledInAction(q) => format!("殉職 ({}日目: {})", day, q),
-                DeathCause::NaturalDeath => format!("永眠 ({}日目: 老衰)", day),
+            Self::Standby => "待機中".to_string(),
+            Self::OnQuest { .. } => "派遣中".to_string(),
+            Self::Training => "訓練中".to_string(),
+            Self::Injured { days_remaining } => format!("療養中（残{days_remaining}日）"),
+            Self::Retired => "引退".to_string(),
+            Self::Fallen { cause, day } => match cause {
+                DeathCause::KilledInAction(q) => format!("殉職 ({day}日目: {q})"),
+                DeathCause::NaturalDeath => format!("永眠 ({day}日目: 老衰)"),
             },
         }
     }
@@ -214,8 +214,7 @@ impl Adventurer {
         self.skills
             .iter()
             .find(|s| s.skill_type == skill_type)
-            .map(|s| s.level)
-            .unwrap_or(0)
+            .map_or(0, |s| s.level)
     }
 
     /// スキル経験値を獲得（なければLv1として新規習得）
@@ -230,10 +229,9 @@ impl Adventurer {
 
     /// 最高レベルのスキル等から通称・代表ロールを動的に生成
     pub fn primary_role(&self) -> String {
-        if self.skills.is_empty() {
+        let Some(best_skill) = self.skills.iter().max_by_key(|s| s.level) else {
             return "新人冒険者".to_string();
-        }
-        let best_skill = self.skills.iter().max_by_key(|s| s.level).unwrap();
+        };
         match best_skill.skill_type {
             SkillType::Swordsmanship => format!("剣士 (Lv{})", best_skill.level),
             SkillType::Shieldwork => format!("重装衛士 (Lv{})", best_skill.level),

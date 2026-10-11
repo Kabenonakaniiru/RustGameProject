@@ -71,7 +71,7 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
                             for item in &report.loot_items {
                                 ui.colored_label(
                                     egui::Color32::from_rgb(220, 200, 140),
-                                    format!("［{}］", item),
+                                    format!("［{item}］"),
                                 );
                             }
                         });
@@ -82,13 +82,13 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
                             for (name, days) in &report.injured_names {
                                 ui.colored_label(
                                     egui::Color32::from_rgb(255, 180, 50),
-                                    format!("🏥 {} (療養{}日)", name, days),
+                                    format!("🏥 {name} (療養{days}日)"),
                                 );
                             }
                             for name in &report.fallen_names {
                                 ui.colored_label(
                                     egui::Color32::from_rgb(255, 80, 80),
-                                    format!("🪦 {} (名誉の戦死)", name),
+                                    format!("🪦 {name} (名誉の戦死)"),
                                 );
                             }
                         });
@@ -141,16 +141,15 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
                 ui.label(format!("基礎連携: {:.1}", party.cooperation));
                 ui.colored_label(
                     egui::Color32::from_rgb(140, 220, 255),
-                    format!("実効連携倍率: x{:.2}", synergy),
+                    format!("実効連携倍率: x{synergy:.2}"),
                 );
                 ui.label(format!("完了任務数: {}件", party.completed_quests));
 
                 // 解散ボタン（出撃中は無効）
-                if !is_on_quest {
-                    if ui.button("🗑️ 部隊解散").clicked() {
+                if !is_on_quest
+                    && ui.button("🗑️ 部隊解散").clicked() {
                         actions.push(QuestAction::DisbandParty(party.id));
                     }
-                }
             });
 
             ui.add_space(4.0);
@@ -181,14 +180,13 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
                                 ui.label(format!("{}", adv.total_combat_power()));
                                 ui.label(adv.status.display_name());
 
-                                if !is_on_quest {
-                                    if ui.button("❌ 外す").clicked() {
+                                if !is_on_quest
+                                    && ui.button("❌ 外す").clicked() {
                                         actions.push(QuestAction::RemovePartyMember {
                                             party_id: party.id,
                                             adv_id: adv.id,
                                         });
                                     }
-                                }
                                 ui.end_row();
                             }
                         }
@@ -269,8 +267,7 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
                         .adventurers
                         .iter()
                         .find(|a| a.id == id)
-                        .map(|a| a.status.is_available())
-                        .unwrap_or(false)
+                        .is_some_and(|a| a.status.is_available())
                 })
         })
         .map(|p| {
@@ -313,11 +310,15 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
                     );
                 } else {
                     ui.label("状態: 受注可能");
-                    if !available_parties.is_empty() {
+                    if available_parties.is_empty() {
+                        ui.colored_label(
+                            egui::Color32::from_rgb(180, 180, 180),
+                            "（出撃可能な待機部隊がありません。部隊に冒険者を配属してください）",
+                        );
+                    } else {
                         for (p_id, p_name, count, synergy) in &available_parties {
                             let btn_label = format!(
-                                "『{}』({}名/倍率{:.2}) を派遣",
-                                p_name, count, synergy
+                                "『{p_name}』({count}名/倍率{synergy:.2}) を派遣"
                             );
                             if ui.button(btn_label).clicked() {
                                 actions.push(QuestAction::Dispatch {
@@ -326,11 +327,6 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
                                 });
                             }
                         }
-                    } else {
-                        ui.colored_label(
-                            egui::Color32::from_rgb(180, 180, 180),
-                            "（出撃可能な待機部隊がありません。部隊に冒険者を配属してください）",
-                        );
                     }
                 }
             });
