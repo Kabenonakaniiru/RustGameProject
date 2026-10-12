@@ -1,0 +1,53 @@
+# Cursor Rules — 冒険者ギルド経営シミュレーション
+
+# 正式な設計文書は AGENTS.md を必ず参照してください。
+
+## Architecture Rules
+
+- This is a Rust desktop app (eframe/egui) for an Adventurer Guild Management Simulation.
+- FULLY OFFLINE: No server dependencies, no cloud DB, no network calls. Zero infrastructure cost.
+- STRICT SEPARATION: `src/core/` (pure Rust game logic, NO egui dependency) vs `src/ui/` (egui rendering only).
+- NEVER import `egui` or `eframe` in any file under `src/core/`.
+- Use the "Action pattern" to avoid borrow checker conflicts: collect UI actions as enum variants during `&self` rendering, apply them after drawing with `&mut self`.
+
+## Coding Standards
+
+- Rust 2024 Edition.
+- `unsafe` code is DENIED (`unsafe_code = "deny"`).
+- All public types must `#[derive(Debug)]`.
+- All state structs must `#[derive(Serialize, Deserialize)]` for JSON save/load.
+- Strict Clippy: `clippy::all`, `clippy::pedantic`, `clippy::nursery` enabled. Zero warnings required.
+- Deterministic RNG: `rand_pcg::Pcg64` for reproducible randomness.
+
+## Testing
+
+- Unit tests are MANDATORY for all `core` logic.
+- Tests must run headlessly: `cargo test` in CI/DevContainer.
+- Currently 19 tests passing. Do NOT remove or disable existing tests.
+
+## Domain Model
+
+- Adventurers: 4 statuses (Active/Injured/Retired/Fallen), 7 stats, 11 skill types, age decay at 40+, death at 70-80.
+- Quests: Difficulty E-S, 3 client factions (Kingdom/MerchantGuild/Civilian), outcomes: CriticalSuccess/Success/Failure/CriticalFailure.
+- Parties: Max 10 members, skill synergy bonuses.
+- Monthly Audit: Every 30 days. 3 consecutive failures = game over.
+- Guild Rank: F→S. S-rank = game clear.
+- Income: Quest commission fees + loot sale margins. Adventurers have no salary.
+- Staff: Retired instructors, clerks etc. are salaried (hiring fee + daily/monthly wage).
+
+## File Structure
+
+- `src/main.rs` — Entry point (minimal)
+- `src/app.rs` — GuildApp (eframe::App, tab navigation, layout)
+- `src/core/` — Game domain (state, adventurer, quest, party, inventory, finance, audit, guild_rank, training, meta)
+- `src/ui/` — Rendering (config, font, components/, views/)
+
+## Comments & Documentation
+
+- Preserve all existing comments and docstrings unless directly modifying that code.
+- Japanese comments are acceptable and common in this codebase.
+
+## Session Discipline
+
+- Keep changes small and focused. Do not attempt large refactors in a single session.
+- Always run `cargo clippy --all-targets -- -D warnings` and `cargo test` before finishing.

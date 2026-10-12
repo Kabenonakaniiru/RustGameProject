@@ -1,0 +1,42 @@
+# Windsurf Rules — 冒険者ギルド経営シミュレーション
+
+正式な設計文書は `AGENTS.md` を参照してください。
+
+## 概要
+冒険者ギルド経営シミュレーション。Rust (eframe/egui) デスクトップアプリ。完全ローカル・オフライン完結（サーバー依存ゼロ）。
+
+## 絶対ルール
+
+1. **`core/` と `ui/` の完全分離**: `src/core/` は純粋 Rust。egui/eframe の import 禁止。`src/ui/` は描画のみ。
+2. **サーバー依存ゼロ**: 外部通信コード禁止。完全オフライン・スタンドアロン。
+3. **`unsafe` 禁止**: `unsafe_code = "deny"` 設定済み。
+4. **借用チェッカー対策**: UI描画中の `&mut GameState` 衝突を避けるため Action パターン（enum で操作を蓄積し描画後に適用）を使用。
+5. **テスト必須**: `core` ロジックには Unit テスト必須。既存テスト（19件）を削除・無効化しない。
+6. **Clippy 準拠**: `clippy::all`, `clippy::pedantic`, `clippy::nursery` 有効。`cargo clippy --all-targets -- -D warnings` ゼロ警告。
+7. **決定論的 RNG**: `rand_pcg::Pcg64` でシード再現性を保証。
+8. **serde**: 全状態構造体に `#[derive(Serialize, Deserialize)]`。JSON セーブ/ロード。
+9. **既存コメント保持**: 変更対象でないコメント・docstring は保持。
+10. **小さく区切る**: 大規模リファクタリングを一度に行わない。
+
+## ドメインモデル
+
+- 冒険者: Active/Injured/Retired/Fallen。7属性、11種スキル。40歳〜減衰、70-80代老衰。
+- クエスト: 難易度E〜S。Kingdom/MerchantGuild/Civilian 3勢力。大成功/成功/失敗/大失敗。
+- パーティ: 最大10名。スキルシナジー。
+- 月次監査: 30日周期。3連続未達でゲームオーバー。
+- ギルドランク: F→S。S到達でクリア。
+- 収入: クエスト仲介手数料 + 戦利品売却。冒険者は無給。職員は給与制。
+
+## ファイル構成
+
+- `src/main.rs` — エントリポイント（最小構成）
+- `src/app.rs` — GuildApp（eframe::App、タブ遷移、レイアウト）
+- `src/core/` — ゲームドメイン（state, adventurer, quest, party, inventory, finance, audit, guild_rank, training, meta）
+- `src/ui/` — 描画（config, font, components/, views/）
+
+## コーディングスタイル
+
+- Rust 2024 Edition
+- 全 pub 型に `#[derive(Debug)]`
+- Rust 2024 イディオム積極利用（`&& let` ガード、`std::io::Error::other` 等）
+- 日本語コメント OK
