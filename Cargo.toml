@@ -36,4 +36,6 @@ doc_markdown = "allow"
 struct_excessive_bools = "allow"
 float_cmp = "allow"
 field_reassign_with_default = "allow"
+suboptimal_flops = "allow"
+assert_is_empty = "allow"
 

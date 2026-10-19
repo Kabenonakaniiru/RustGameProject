@@ -7,6 +7,7 @@ pub enum HeaderAction {
     AdvanceDay,
     Save,
     Load,
+    ReturnToTitle,
     OpenSettings,
     ZoomIn,
     ZoomOut,
@@ -26,10 +27,12 @@ pub fn render(
         .fill(egui::Color32::from_rgb(25, 27, 34))
         .inner_margin(egui::Margin::symmetric(14, 8))
         .show(ui, |ui| {
-            // 幅が狭い（720px未満）ときは縦並び、広いときは左右分割
-            if available_width >= 720.0 {
+            // 幅が狭い（760px未満）ときは縦並び、広いときは左右分割
+            if available_width >= 760.0 {
                 ui.horizontal(|ui| {
-                    ui.heading("🏰 冒険者ギルド経営日誌");
+                    ui.heading(format!("🏰 {}", state.guild_name));
+                    ui.add_space(6.0);
+                    ui.small(format!("（マスター: {} / 拠点: {}）", state.master_name, state.location));
 
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         render_action_buttons(ui, &mut action, status_msg, zoom_factor);
@@ -37,7 +40,11 @@ pub fn render(
                 });
             } else {
                 ui.vertical(|ui| {
-                    ui.heading("🏰 冒険者ギルド経営日誌");
+                    ui.horizontal_wrapped(|ui| {
+                        ui.heading(format!("🏰 {}", state.guild_name));
+                        ui.add_space(6.0);
+                        ui.small(format!("（マスター: {} / 拠点: {}）", state.master_name, state.location));
+                    });
                     ui.add_space(4.0);
                     ui.horizontal_wrapped(|ui| {
                         render_action_buttons(ui, &mut action, status_msg, zoom_factor);
@@ -123,6 +130,10 @@ fn render_action_buttons(
 
     if ui.button("⚙️ 設定").on_hover_text("環境設定メニューを開く (Esc)").clicked() {
         *action = HeaderAction::OpenSettings;
+    }
+
+    if ui.button("🏠 タイトル").on_hover_text("タイトル画面に戻ります（未保存の進行状況にご注意ください）").clicked() {
+        *action = HeaderAction::ReturnToTitle;
     }
 
     ui.separator();

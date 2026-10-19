@@ -80,7 +80,9 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
 }
 
 fn render_basic_info(ui: &mut egui::Ui, state: &GameState) {
-    ui.label("ギルド名称: 王都冒険者ギルド第3支部");
+    ui.label(format!("ギルド名称: {}", state.guild_name));
+    ui.label(format!("ギルドマスター: {}", state.master_name));
+    ui.label(format!("開業拠点: {}", state.location));
     ui.label(format!("ギルドランク: {}", state.guild_rank.display_name()));
     ui.label(format!("ギルド名声: {} pt", state.reputation));
     ui.label(format!("累計クエスト達成: {} 件", state.total_quests_completed));

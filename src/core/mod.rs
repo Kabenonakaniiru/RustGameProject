@@ -197,6 +197,9 @@ mod tests {
         save_game(&state, &temp_file).expect("Save should succeed");
         let loaded = load_game(&temp_file).expect("Load should succeed");
 
+        assert_eq!(state.guild_name, loaded.guild_name);
+        assert_eq!(state.master_name, loaded.master_name);
+        assert_eq!(state.location, loaded.location);
         assert_eq!(state.day, loaded.day);
         assert_eq!(state.gold, loaded.gold);
         assert_eq!(state.guild_rank, loaded.guild_rank);
@@ -207,6 +210,30 @@ mod tests {
         assert_eq!(state.logs, loaded.logs);
 
         let _ = std::fs::remove_file(temp_file);
+    }
+
+    #[test]
+    fn test_game_state_profile_initialization() {
+        // デフォルト初期化
+        let default_state = GameState::new_default();
+        assert_eq!(default_state.guild_name, "冒険者ギルド");
+        assert_eq!(default_state.master_name, "ギルドマスター");
+        assert_eq!(default_state.location, "王都");
+        assert_eq!(default_state.rng_seed, 42);
+
+        // プロファイル指定初期化
+        let custom_state = GameState::new_with_profile(
+            "蒼穹の冒険者ギルド",
+            "アシュレイ",
+            "港町",
+            12345,
+        );
+        assert_eq!(custom_state.guild_name, "蒼穹の冒険者ギルド");
+        assert_eq!(custom_state.master_name, "アシュレイ");
+        assert_eq!(custom_state.location, "港町");
+        assert_eq!(custom_state.rng_seed, 12345);
+        assert!(custom_state.logs.iter().any(|l| l.contains("蒼穹の冒険者ギルド") && l.contains("港町")));
+        assert!(custom_state.logs.iter().any(|l| l.contains("アシュレイ")));
     }
 
     #[test]

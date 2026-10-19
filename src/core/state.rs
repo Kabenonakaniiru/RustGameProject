@@ -21,6 +21,11 @@ fn default_rng() -> Pcg64 {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GameState {
+    // ギルド基本プロファイル（初期設定で決定）
+    pub guild_name: String,
+    pub master_name: String,
+    pub location: String,
+
     // 基本ステータス
     pub gold: i64,
     pub day: u32,
@@ -234,6 +239,9 @@ impl GameState {
         ];
 
         Self {
+            guild_name: "冒険者ギルド".to_string(),
+            master_name: "ギルドマスター".to_string(),
+            location: "王都".to_string(),
             gold: 3500,
             day: 1,
             guild_rank: GuildRank::F,
@@ -260,6 +268,35 @@ impl GameState {
             rng,
             logs,
         }
+    }
+
+    /// 初期設定プロファイルを指定してゲーム状態を生成
+    pub fn new_with_profile(
+        guild_name: impl Into<String>,
+        master_name: impl Into<String>,
+        location: impl Into<String>,
+        seed: u64,
+    ) -> Self {
+        let guild_name = guild_name.into();
+        let master_name = master_name.into();
+        let location = location.into();
+
+        let mut state = Self::new_default();
+        state.guild_name = guild_name;
+        state.master_name = master_name;
+        state.location = location;
+        state.rng_seed = seed;
+        state.rng = Pcg64::seed_from_u64(seed);
+
+        // 初期ログをプレイヤープロファイルに合わせて差し替え
+        state.logs = vec![
+            format!("【開業】『{}』が{}にて営業を開始しました。", state.guild_name, state.location),
+            format!("【着任】ギルドマスター {} が経営の指揮を執ります。", state.master_name),
+            "【通達】固定資産税・光熱費・職員給与は毎日自動引き落としされます。".to_string(),
+            "【新体制】スキル制および最大10名編成の連携システムが始動しました。".to_string(),
+        ];
+
+        state
     }
 
     /// 現在の経過年（1年 = 365日）

@@ -114,12 +114,17 @@ src/
     * 描画と状態変更を完全分離する `QuestAction` パターンによる借用安全性。
   * `src/ui/views/adventurers.rs`: 冒険者一覧に所属部隊列を追加、下部に「栄誉の殿堂・追悼録」表示を追加。
   * Unit テスト拡充（19件全パス）: 部隊結成・メンバー配属・除外・二重所属防止・解散、クエスト完了報告書生成・クリア検証テスト。
-* [x] **厳格な Clippy 静的解析・Lints 基盤の導入とコードベース全体のクリーンアップ（2026-10-12 完了）**:
-  * `Cargo.toml`: `[lints.rust]`（`unsafe_code = "deny"`, `missing_debug_implementations = "warn"`）および `[lints.clippy]`（`all`, `pedantic`, `nursery`, `clone_on_ref_ptr` を有効化、ゲーム・UI向けの過度なノイズ項目のみ allow 調整）。
-  * コード全体のリファクタリング: Rust 2024 イディオム（`&& let`、`std::io::Error::other`、`uninlined_format_args`、`vec!` 最適化、`#[derive(Debug)]` の網羅等）。
-  * 全ターゲット（テスト含む）で `cargo clippy --all-targets -- -D warnings` がゼロ警告・ゼロエラーでパスすることを確立。
+* [x] **ギルドプロファイル・初期設定およびタイトル画面システムの実装（2026-10-20 完了）**:
+  * `src/core/state.rs`: `GameState` に `guild_name`（ギルド名称）、`master_name`（ギルドマスター名）、`location`（開業拠点地域）フィールドを追加。`new_default()` での初期値設定および、プレイヤー設定を反映する `new_with_profile()` コンストラクタを実装。
+  * `src/ui/views/title_screen.rs`（新規）: ゲーム起動時のタイトル画面。「🆕 新規開業」「📂 続きから（ロード・セーブデータ存在時のみ有効）」「⚙️ 環境設定」のメニューを提供。
+  * `src/ui/views/setup.rs`（新規）: 新規開業時の初期設定画面。ギルド名称、ギルドマスター名、開業拠点地域（プリセット選択＋自由入力）、任意乱数シードの設定と文字数・必須入力バリデーション（`SetupForm`）。
+  * `src/app.rs`: `AppPhase` enum（`TitleScreen`, `InitialSetup`, `InGame`）による画面ライフサイクル遷移を導入。ゲーム本編からの「🏠 タイトル画面に戻る」連携、ロード成功時の本編自動遷移をサポート。
+  * `src/ui/components/header.rs` & `views/overview.rs`: 従来のハードコード名称（`王都冒険者ギルド第3支部`）を完全撤廃し、プレイヤーが命名したギルド名称・マスター名・拠点を動的表示。
+  * Unit テスト拡充（21件全パス）: ギルドプロファイル初期化、セーブ/ロード往復保持、`SetupForm` バリデーション＆乱数シードパースのテストを追加。
+  * Clippy: 全ターゲット（テスト含む）で `cargo clippy --all-targets -- -D warnings` がゼロ警告・ゼロエラーでパス。
 
 ---
+
 
 ## 4. ゲーム要件・コア仕様（2026-09-19 確定）
 
