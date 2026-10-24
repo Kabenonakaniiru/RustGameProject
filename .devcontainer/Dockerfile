@@ -35,8 +35,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 
 # 日本語IME（fcitx5-mozc）の既定プロファイル・ホットキー設定および環境変数の配備
 RUN mkdir -p /etc/skel/.config/fcitx5 \
-    && printf "[Groups/0]\nName=Default\nDefault Layout=us\nDefaultIM=mozc\n\n[Groups/0/Items/0]\nName=keyboard-us\nLayout=\n\n[Groups/0/Items/1]\nName=mozc\nLayout=\n\n[GroupOrder]\n0=Default\n" > /etc/skel/.config/fcitx5/profile \
-    && printf "[Hotkey]\nEnumerateWithTriggerKeys=True\nEnumerateForwardKeys=\nEnumerateBackwardKeys=\nEnumerateSkipFirst=False\n\n[Hotkey/TriggerKeys]\n0=Zenkaku_Hankaku\n1=Control+space\n" > /etc/skel/.config/fcitx5/config \
+    && printf "[Groups/0]\nName=Default\nDefault Layout=jp\nDefaultIM=mozc\n\n[Groups/0/Items/0]\nName=keyboard-jp\nLayout=\n\n[Groups/0/Items/1]\nName=keyboard-us\nLayout=\n\n[Groups/0/Items/2]\nName=mozc\nLayout=\n\n[GroupOrder]\n0=Default\n" > /etc/skel/.config/fcitx5/profile \
+    && printf "[Hotkey]\nEnumerateWithTriggerKeys=True\nEnumerateForwardKeys=\nEnumerateBackwardKeys=\nEnumerateSkipFirst=False\n\n[Hotkey/TriggerKeys]\n0=Zenkaku_Hankaku\n1=Control+space\n2=Shift+space\n3=Alt+grave\n" > /etc/skel/.config/fcitx5/config \
     && printf 'export GTK_IM_MODULE=fcitx\nexport QT_IM_MODULE=fcitx\nexport XMODIFIERS=@im=fcitx\nexport DBUS_SESSION_BUS_ADDRESS="unix:path=/tmp/dbus-session-vscode.sock"\n' > /etc/profile.d/fcitx5-ime.sh \
     && chmod +x /etc/profile.d/fcitx5-ime.sh
 

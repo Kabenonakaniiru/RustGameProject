@@ -11,17 +11,23 @@ if [ ! -f "$HOME/.config/fcitx5/profile" ]; then
 # Group Name
 Name=Default
 # Layout
-Default Layout=us
+Default Layout=jp
 # Default Input Method
 DefaultIM=mozc
 
 [Groups/0/Items/0]
 # Name
-Name=keyboard-us
+Name=keyboard-jp
 # Layout
 Layout=
 
 [Groups/0/Items/1]
+# Name
+Name=keyboard-us
+# Layout
+Layout=
+
+[Groups/0/Items/2]
 # Name
 Name=mozc
 # Layout
@@ -43,6 +49,8 @@ EnumerateSkipFirst=False
 [Hotkey/TriggerKeys]
 0=Zenkaku_Hankaku
 1=Control+space
+2=Shift+space
+3=Alt+grave
 EOF
 fi
 
