@@ -122,6 +122,10 @@ src/
   * `src/ui/components/header.rs` & `views/overview.rs`: 従来のハードコード名称（`王都冒険者ギルド第3支部`）を完全撤廃し、プレイヤーが命名したギルド名称・マスター名・拠点を動的表示。
   * Unit テスト拡充（21件全パス）: ギルドプロファイル初期化、セーブ/ロード往復保持、`SetupForm` バリデーション＆乱数シードパースのテストを追加。
   * Clippy: 全ターゲット（テスト含む）で `cargo clippy --all-targets -- -D warnings` がゼロ警告・ゼロエラーでパス。
+* [x] **DevContainer 日本語入力（IME）環境の完全整備・恒久化（2026-10-25 完了）**:
+  * `.devcontainer/Dockerfile`: `fcitx5`, `fcitx5-mozc`, `dbus-x11`, `im-config`, `locales`, `fonts-noto-cjk` の導入、`ja_JP.UTF-8` ロケール生成、`/etc/skel` への規定設定（Mozc有効化・半角全角およびCtrl+Spaceホットキー）および `/etc/profile.d/fcitx5-ime.sh` による環境変数の恒久化。
+  * `.devcontainer/devcontainer.json`: `containerEnv` への `GTK_IM_MODULE`, `QT_IM_MODULE`, `XMODIFIERS`, `DBUS_SESSION_BUS_ADDRESS` 設定、および `postStartCommand` による自動起動フック（`init-ime.sh`）の追加。
+  * `.devcontainer/init-ime.sh`: WSLg特有のWaylandバインド制限（error 71）を回避する `fcitx5 -d --disable wayland,waylandim` 起動制御、固定アドレスD-Busデーモンの自動立ち上げとヘルスチェックを実装。アプリコードを一切汚さず開発環境側で日本語入力を恒久完結。
 
 ---
 
@@ -172,16 +176,12 @@ src/
 
 ## 5. 次回作業予定（Phase 3 継続）
 
-1. **DevContainer の日本語入力（IME）環境の整備（最優先）**:
-   * 本番ビルド（Windows ネイティブ）では OS 標準 IME が直接動作するためアプリコードは汚さず、開発環境側で対応する方針（2026-10-24 合意）。
-   * `.devcontainer/Dockerfile` および `devcontainer.json` への `fcitx5-mozc` / `dbus` / 環境変数設定の追加と自動起動設定。
-   * 初期設定画面等で直接日本語（かな・漢字）がキーボードからタイピングできることの動作検証。
-2. **クエスト供給・自動生成システム**:
+1. **クエスト供給・自動生成システム**:
    * クエスト完了・消化に伴う新規依頼の定期的補充（クライアント勢力・ギルドランクに応じた生成）。
-3. **冒険者リクルート（志願者生成）システム**:
+2. **冒険者リクルート（志願者生成）システム**:
    * 総合名声（Guild Fame）に基づく志願者の質・数・稀少スキルの決定論的生成。
    * プレイヤーによる採用/見送りの選択UI。
-4. **冒険者の引退・教官雇用フロー**:
+3. **冒険者の引退・教官雇用フロー**:
    * 引退判断（手動）→ 訓練所教官への転換 → 教官としてのメンターシップ運用。
    * 引退冒険者の老衰処理（訓練所からの退任・殿堂登録）。
 

@@ -14,7 +14,11 @@
     "DISPLAY": ":0",
     "XDG_RUNTIME_DIR": "/mnt/wslg/runtime-dir",
     "PULSE_SERVER": "/mnt/wslg/PulseServer",
-    "LIBGL_ALWAYS_SOFTWARE": "1"
+    "LIBGL_ALWAYS_SOFTWARE": "1",
+    "GTK_IM_MODULE": "fcitx",
+    "QT_IM_MODULE": "fcitx",
+    "XMODIFIERS": "@im=fcitx",
+    "DBUS_SESSION_BUS_ADDRESS": "unix:path=/tmp/dbus-session-vscode.sock"
   },
   "customizations": {
     "vscode": {
@@ -26,5 +30,6 @@
     }
   },
   "remoteUser": "vscode",
-  "postCreateCommand": "mkdir -p ~/.gemini/antigravity-cli && sudo chown -R $(whoami) ~/.gemini && curl -fsSL https://antigravity.google/cli/install.sh | bash"
+  "postCreateCommand": "mkdir -p ~/.gemini/antigravity-cli && sudo chown -R $(whoami) ~/.gemini && curl -fsSL https://antigravity.google/cli/install.sh | bash",
+  "postStartCommand": "bash .devcontainer/init-ime.sh"
 }
