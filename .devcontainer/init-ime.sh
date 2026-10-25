@@ -54,6 +54,28 @@ EnumerateSkipFirst=False
 EOF
 fi
 
+# classicui: 候補ウィンドウがwinit のフォーカスイベントに干渉しないよう設定
+# （フォーカス取得しない独立ウィンドウとして動作させる）
+mkdir -p "$HOME/.config/fcitx5/conf"
+if [ ! -f "$HOME/.config/fcitx5/conf/classicui.conf" ]; then
+    cat <<'EOF' > "$HOME/.config/fcitx5/conf/classicui.conf"
+[/]
+PerScreenDPI=True
+Font=Noto Sans CJK JP 12
+MenuFont=Noto Sans CJK JP 12
+TrayFont=Noto Sans CJK JP 10
+EOF
+fi
+
+# XIM フロントエンド: winit との XIM preedit ループを防ぐため
+# OnTheSpot preedit を無効化（Root/Nothing モードで動作）
+if [ ! -f "$HOME/.config/fcitx5/conf/xim.conf" ]; then
+    cat <<'EOF' > "$HOME/.config/fcitx5/conf/xim.conf"
+[/]
+UseOnTheSofPreedit=False
+EOF
+fi
+
 # 2. D-Bus セッションバスの確認と起動
 DBUS_SOCKET="/tmp/dbus-session-vscode.sock"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=$DBUS_SOCKET"

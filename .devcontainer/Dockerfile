@@ -34,9 +34,11 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 日本語IME（fcitx5-mozc）の既定プロファイル・ホットキー設定および環境変数の配備
-RUN mkdir -p /etc/skel/.config/fcitx5 \
+RUN mkdir -p /etc/skel/.config/fcitx5/conf \
     && printf "[Groups/0]\nName=Default\nDefault Layout=jp\nDefaultIM=mozc\n\n[Groups/0/Items/0]\nName=keyboard-jp\nLayout=\n\n[Groups/0/Items/1]\nName=keyboard-us\nLayout=\n\n[Groups/0/Items/2]\nName=mozc\nLayout=\n\n[GroupOrder]\n0=Default\n" > /etc/skel/.config/fcitx5/profile \
     && printf "[Hotkey]\nEnumerateWithTriggerKeys=True\nEnumerateForwardKeys=\nEnumerateBackwardKeys=\nEnumerateSkipFirst=False\n\n[Hotkey/TriggerKeys]\n0=Zenkaku_Hankaku\n1=Control+space\n2=Shift+space\n3=Alt+grave\n" > /etc/skel/.config/fcitx5/config \
+    && printf "[/]\nPerScreenDPI=True\nFont=Noto Sans CJK JP 12\nMenuFont=Noto Sans CJK JP 12\nTrayFont=Noto Sans CJK JP 10\n" > /etc/skel/.config/fcitx5/conf/classicui.conf \
+    && printf "[/]\nUseOnTheSofPreedit=False\n" > /etc/skel/.config/fcitx5/conf/xim.conf \
     && printf 'export GTK_IM_MODULE=fcitx\nexport QT_IM_MODULE=fcitx\nexport XMODIFIERS=@im=fcitx\nexport DBUS_SESSION_BUS_ADDRESS="unix:path=/tmp/dbus-session-vscode.sock"\n' > /etc/profile.d/fcitx5-ime.sh \
     && chmod +x /etc/profile.d/fcitx5-ime.sh
 
