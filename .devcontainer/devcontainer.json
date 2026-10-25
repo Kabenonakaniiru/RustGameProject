@@ -15,6 +15,7 @@
     "XDG_RUNTIME_DIR": "/mnt/wslg/runtime-dir",
     "PULSE_SERVER": "/mnt/wslg/PulseServer",
     "LIBGL_ALWAYS_SOFTWARE": "1",
+    "LANG": "ja_JP.UTF-8",
     "GTK_IM_MODULE": "fcitx",
     "QT_IM_MODULE": "fcitx",
     "XMODIFIERS": "@im=fcitx",

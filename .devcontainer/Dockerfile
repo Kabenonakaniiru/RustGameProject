@@ -44,6 +44,7 @@ RUN mkdir -p /etc/skel/.config/fcitx5 \
 RUN rustup target add x86_64-pc-windows-msvc
 
 # Cargo ツール群（Windowsクロスビルド用、ライセンス調査用）
-RUN cargo install cargo-xwin cargo-license
+RUN cargo install cargo-xwin cargo-license \
+    && chmod -R g+w /usr/local/cargo/registry
 
 WORKDIR /workspace
