@@ -48,9 +48,10 @@ EnumerateSkipFirst=False
 
 [Hotkey/TriggerKeys]
 0=Zenkaku_Hankaku
-1=Control+space
-2=Shift+space
-3=Alt+grave
+1=Hiragana_Katakana
+2=Control+space
+3=Shift+space
+4=Alt+grave
 EOF
 fi
 
