@@ -1,3 +1,4 @@
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 /// 冒険者の基礎能力値
@@ -269,4 +270,93 @@ impl Adventurer {
             self.stats.apply_aging_decay();
         }
     }
+}
+
+// ──────────────────────────────────────────────────────────────
+// 志願者（リクルート）ランダム生成
+// ──────────────────────────────────────────────────────────────
+
+/// ギルドランクと名声に基づいて志願者を1名ランダム生成する
+pub fn generate_recruit<R: Rng>(id: u64, reputation: u32, rng: &mut R) -> Adventurer {
+    let (rank, stat_base, skill_max_lv) = recruit_quality_tier(reputation, rng);
+
+    let name = pick_name(rng);
+    let age: u32 = rng.gen_range(16..=30);
+    let lifespan: u32 = rng.gen_range(70..=85);
+
+    // 能力値（ランク帯によってベースが変わる）
+    let hp = stat_base + rng.gen_range(0..30);
+    let str_ = stat_base / 4 + rng.gen_range(0..8);
+    let def_ = stat_base / 5 + rng.gen_range(0..6);
+    let int_ = stat_base / 5 + rng.gen_range(0..6);
+    let agi  = stat_base / 5 + rng.gen_range(0..6);
+    let dex  = stat_base / 5 + rng.gen_range(0..6);
+    let ldr  = rng.gen_range(5..=15);
+    let stats = Stats::new(hp, str_, def_, int_, agi, dex, ldr);
+
+    // スキル（1〜3種、各1〜skill_max_lv）
+    let all_skills = ALL_SKILL_TYPES;
+    let num_skills = rng.gen_range(1..=3usize).min(all_skills.len());
+    let mut chosen_skills: Vec<SkillType> = Vec::new();
+    while chosen_skills.len() < num_skills {
+        let s = all_skills[rng.gen_range(0..all_skills.len())];
+        if !chosen_skills.contains(&s) {
+            chosen_skills.push(s);
+        }
+    }
+    let skills = chosen_skills
+        .into_iter()
+        .map(|st| Skill::new(st, rng.gen_range(1..=skill_max_lv)))
+        .collect();
+
+    Adventurer::new(id, name, rank, age, lifespan, stats, skills)
+}
+
+/// 名声に応じた志願者の品質ティアを決定する
+/// 戻り値: (ランク文字列, HPベース値, スキル最大Lv)
+fn recruit_quality_tier<R: Rng>(reputation: u32, rng: &mut R) -> (&'static str, u32, u32) {
+    // 名声が高いほど高ランク志願者の出現率が上がる
+    let high_roll = reputation / 20; // 0〜5+ の重み加算
+    let roll = rng.gen_range(0..100u32);
+
+    if roll + high_roll >= 95 {
+        ("A", 180, 6)
+    } else if roll + high_roll >= 85 {
+        ("B", 150, 5)
+    } else if roll + high_roll >= 70 {
+        ("C", 120, 4)
+    } else if roll + high_roll >= 45 {
+        ("D", 90, 3)
+    } else {
+        ("E", 65, 2)
+    }
+}
+
+static ALL_SKILL_TYPES: &[SkillType] = &[
+    SkillType::Swordsmanship,
+    SkillType::Shieldwork,
+    SkillType::Archery,
+    SkillType::MartialArts,
+    SkillType::AttackMagic,
+    SkillType::HealingMagic,
+    SkillType::SupportMagic,
+    SkillType::Scouting,
+    SkillType::DisarmTrap,
+    SkillType::Herbalism,
+    SkillType::Mining,
+    SkillType::Tactics,
+    SkillType::Cooperation,
+];
+
+/// ランダムな日本風名前を返す（男女混合）
+fn pick_name<R: Rng>(rng: &mut R) -> String {
+    static NAMES: &[&str] = &[
+        "レオン", "ミア", "カイン", "シェリー", "ドラン", "フィア",
+        "ゼノン", "ルーシー", "ガルド", "ティア", "ライル", "エルザ",
+        "バルト", "ニア", "クロイス", "マリア", "ジン", "フランカ",
+        "ヴァルク", "アイリ", "ソラン", "レナ", "グレン", "ユナ",
+        "トール", "エスタ", "アイク", "ラナ", "ライガン", "セナ",
+        "デュラン", "アリシア", "ベルク", "タリア", "レヴィン", "コーネリア",
+    ];
+    NAMES[rng.gen_range(0..NAMES.len())].to_string()
 }

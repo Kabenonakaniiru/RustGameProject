@@ -1,22 +1,26 @@
 use std::collections::HashMap;
-use rand::SeedableRng;
+use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64;
 use serde::{Deserialize, Serialize};
 
-use super::adventurer::{Adventurer, AdventurerStatus, DeathCause, Skill, SkillType, Stats};
+use super::adventurer::{generate_recruit, Adventurer, AdventurerStatus, DeathCause, Skill, SkillType, Stats};
 use super::audit::MonthlyAudit;
 use super::finance::Staff;
 use super::guild_rank::{GuildRank, PromotionRequirement};
 use super::inventory::InventoryItem;
 use super::meta::HallOfFameAdventurer;
 use super::party::Party;
-use super::quest::{ClientFaction, Quest, QuestDifficulty, QuestReport};
+use super::quest::{generate_quest, ClientFaction, Quest, QuestDifficulty, QuestReport};
 use super::training::TrainingDojo;
 
 pub const DAYS_PER_YEAR: u32 = 365;
 
 fn default_rng() -> Pcg64 {
     Pcg64::seed_from_u64(42)
+}
+
+const fn default_next_id() -> u64 {
+    100
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -59,6 +63,14 @@ pub struct GameState {
     // 直近のクエスト完了報告（UI通知用）
     #[serde(default)]
     pub latest_quest_reports: Vec<QuestReport>,
+
+    // 冒険者志願者キュー（プレイヤーが採用/見送りを選択する）
+    #[serde(default)]
+    pub pending_recruits: Vec<Adventurer>,
+
+    // エンティティID採番カウンタ
+    #[serde(default = "default_next_id")]
+    pub next_entity_id: u64,
 
     // 月次監査
     pub audit: MonthlyAudit,
@@ -261,6 +273,8 @@ impl GameState {
             total_expenses: 0,
             total_quests_completed: 0,
             latest_quest_reports: Vec::new(),
+            pending_recruits: Vec::new(),
+            next_entity_id: 100,
             audit: MonthlyAudit::new(),
             game_over: false,
             game_cleared: false,
@@ -400,6 +414,16 @@ impl GameState {
         // 7. ランク昇格チェック（監査合格後に判定）
         if !self.game_over {
             self.check_promotion();
+        }
+
+        // 8. クエスト自動補充（5日ごと・上限8件）
+        if self.day.is_multiple_of(5) {
+            self.refill_quests();
+        }
+
+        // 9. 冒険者志願者の自動生成（7日ごと・上限3名待機）
+        if self.day.is_multiple_of(7) {
+            self.maybe_generate_recruit();
         }
     }
 
@@ -829,5 +853,168 @@ impl GameState {
         if self.logs.len() > 50 {
             self.logs.remove(0);
         }
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // クエスト自動補充
+    // ──────────────────────────────────────────────────────────────
+
+    /// 受注待ちクエストを補充する（上限8件、5日ごとに呼ばれる）
+    fn refill_quests(&mut self) {
+        const MAX_AVAILABLE: usize = 8;
+        let available_count = self.quests.iter().filter(|q| !q.is_dispatched).count();
+        if available_count >= MAX_AVAILABLE {
+            return;
+        }
+        // 1〜2件補充
+        let count_to_add = {
+            let r: u32 = self.rng.gen_range(0..2);
+            (r + 1) as usize
+        };
+        let actually_add = count_to_add.min(MAX_AVAILABLE - available_count);
+
+        for _ in 0..actually_add {
+            let new_id = self.next_entity_id;
+            self.next_entity_id += 1;
+            let quest = generate_quest(new_id, self.guild_rank, &mut self.rng);
+            let title = quest.title.clone();
+            self.quests.push(quest);
+            self.add_log(format!("【新規依頼】新しいクエスト『{title}』が掲示板に追加されました。"));
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // 冒険者リクルートシステム
+    // ──────────────────────────────────────────────────────────────
+
+    /// 志願者を1名生成して pending_recruits に追加する（7日ごとに呼ばれる）
+    fn maybe_generate_recruit(&mut self) {
+        const MAX_PENDING: usize = 3;
+        if self.pending_recruits.len() >= MAX_PENDING {
+            return;
+        }
+        // 名声が高いほど志願者が来やすい（確率: 50% + 名声/4 ％）
+        let prob: u32 = (50 + self.reputation / 4).min(90);
+        let roll: u32 = self.rng.gen_range(0..100);
+        if roll >= prob {
+            return;
+        }
+
+        let new_id = self.next_entity_id;
+        self.next_entity_id += 1;
+        let recruit = generate_recruit(new_id, self.reputation, &mut self.rng);
+        let name = recruit.name.clone();
+        let rank = recruit.rank.clone();
+        self.pending_recruits.push(recruit);
+        self.add_log(format!(
+            "【志願者】{name}（{rank}ランク相当）がギルドへの入団を志願してきました！"
+        ));
+    }
+
+    /// 志願者を採用する（pending_recruits → adventurers）
+    pub fn accept_recruit(&mut self, idx: usize) -> Result<(), &'static str> {
+        if idx >= self.pending_recruits.len() {
+            return Err("志願者が見つかりません");
+        }
+        let recruit = self.pending_recruits.remove(idx);
+        let name = recruit.name.clone();
+        let rank = recruit.rank.clone();
+        self.adventurers.push(recruit);
+        self.add_log(format!(
+            "【採用】{name}（{rank}ランク）をギルドメンバーとして採用しました！"
+        ));
+        Ok(())
+    }
+
+    /// 志願者を見送る（pending_recruits から除外するだけ）
+    pub fn decline_recruit(&mut self, idx: usize) -> Result<(), &'static str> {
+        if idx >= self.pending_recruits.len() {
+            return Err("志願者が見つかりません");
+        }
+        let name = self.pending_recruits[idx].name.clone();
+        self.pending_recruits.remove(idx);
+        self.add_log(format!(
+            "【見送り】{name} の入団申請をお断りしました。"
+        ));
+        Ok(())
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // 冒険者引退・教官雇用フロー
+    // ──────────────────────────────────────────────────────────────
+
+    /// 冒険者を引退させる（待機中のみ可能）
+    pub fn retire_adventurer(&mut self, adventurer_id: u64) -> Result<(), &'static str> {
+        let adv = self
+            .adventurers
+            .iter_mut()
+            .find(|a| a.id == adventurer_id)
+            .ok_or("冒険者が見つかりません")?;
+
+        if !matches!(adv.status, AdventurerStatus::Standby) {
+            return Err("待機中の冒険者のみ引退できます");
+        }
+
+        let name = adv.name.clone();
+        let age = adv.age;
+        adv.status = AdventurerStatus::Retired;
+
+        // 全部隊から除外
+        for party in &mut self.parties {
+            party.remove_member(adventurer_id);
+        }
+
+        self.add_log(format!(
+            "【引退】{name}（{age}歳）が冒険者としての現役を引退しました。教官採用が可能です。"
+        ));
+        Ok(())
+    }
+
+    /// 引退済み冒険者を訓練所教官として雇用する
+    pub fn hire_as_instructor(&mut self, adventurer_id: u64, daily_salary: i64) -> Result<(), &'static str> {
+        let adv = self
+            .adventurers
+            .iter()
+            .find(|a| a.id == adventurer_id)
+            .ok_or("冒険者が見つかりません")?;
+
+        if !matches!(adv.status, AdventurerStatus::Retired) {
+            return Err("引退済みの冒険者のみ教官として雇用できます");
+        }
+
+        // 既に教官として雇用済みかチェック
+        if self
+            .training_dojo
+            .instructors
+            .iter()
+            .any(|i| i.adventurer_id == Some(adventurer_id))
+        {
+            return Err("この冒険者は既に教官として雇用されています");
+        }
+
+        let instructor = super::training::Instructor::from_retired_adventurer(adv, daily_salary);
+        let inst_name = instructor.name.clone();
+        let skill_name = instructor.specialty_skill.name();
+        self.training_dojo.add_instructor(instructor);
+
+        self.add_log(format!(
+            "【教官就任】{inst_name} が訓練所の指導員として就任しました。得意分野：{skill_name}（日給: {daily_salary}G）"
+        ));
+        Ok(())
+    }
+
+    /// 教官を解雇する
+    pub fn dismiss_instructor(&mut self, adventurer_id: u64) -> Result<(), &'static str> {
+        let pos = self
+            .training_dojo
+            .instructors
+            .iter()
+            .position(|i| i.adventurer_id == Some(adventurer_id))
+            .ok_or("該当する教官が見つかりません")?;
+
+        let name = self.training_dojo.instructors[pos].name.clone();
+        self.training_dojo.instructors.remove(pos);
+        self.add_log(format!("【教官解雇】{name} が訓練所の教官職を退きました。"));
+        Ok(())
     }
 }

@@ -184,6 +184,91 @@ mod tests {
     }
 
     #[test]
+    fn test_quest_auto_refill() {
+        let mut state = GameState::new_default();
+        // 初期クエスト数を確認（5件）
+        let initial_quest_count = state.quests.len();
+        assert_eq!(initial_quest_count, 5);
+
+        // 全クエストをクリア
+        state.quests.clear();
+        assert!(state.quests.is_empty());
+
+        // day を5の倍数より少し前にセット（day=6にして次の補充タイミングはday=10）
+        state.day = 6;
+
+        // 3日進める（day=7,8,9 → まだ補充なし）
+        for _ in 0..3 {
+            state.advance_day();
+        }
+        assert!(state.quests.is_empty(), "day=9時点ではまだ補充されないべき");
+
+        // day=10 → 10 % 5 == 0 で補充が実行される
+        state.advance_day();
+        assert!(!state.quests.is_empty(), "クエストが補充されるべき");
+    }
+
+    #[test]
+    fn test_recruit_generation_and_acceptance() {
+        let mut state = GameState::new_default();
+        let initial_adv_count = state.adventurers.len();
+
+        // 名声を高めて志願者確率を最大化
+        state.reputation = 200;
+
+        // 7日進める（7日目に maybe_generate_recruit が実行）
+        for _ in 0..7 {
+            state.advance_day();
+        }
+
+        // pending_recruits の状態に応じてテスト
+        let recruits_len = state.pending_recruits.len();
+
+        if recruits_len > 0 {
+            let recruit_name = state.pending_recruits[0].name.clone();
+            state.accept_recruit(0).expect("採用に成功するべき");
+            assert_eq!(state.adventurers.len(), initial_adv_count + 1);
+            assert!(state.adventurers.last().is_some_and(|a| a.name == recruit_name));
+
+            if !state.pending_recruits.is_empty() {
+                let prev_len = state.pending_recruits.len();
+                state.decline_recruit(0).expect("見送りに成功するべき");
+                assert_eq!(state.pending_recruits.len(), prev_len - 1);
+            }
+        }
+        // 範囲外インデックスへの採用はエラー
+        assert!(state.accept_recruit(999).is_err());
+    }
+
+    #[test]
+    fn test_retire_and_hire_as_instructor() {
+        let mut state = GameState::new_default();
+
+        // アレン（ID 1）を引退させる
+        assert!(state.retire_adventurer(1).is_ok());
+        let allen = state.adventurers.iter().find(|a| a.id == 1).unwrap();
+        assert_eq!(allen.status, AdventurerStatus::Retired);
+
+        // 引退済みの冒険者を再引退しようとするとエラー
+        assert!(state.retire_adventurer(1).is_err());
+
+        // 教官として雇用
+        assert!(state.hire_as_instructor(1, 50).is_ok());
+        assert_eq!(state.training_dojo.instructors.len(), 1);
+        assert_eq!(state.training_dojo.instructors[0].adventurer_id, Some(1));
+
+        // 重複雇用不可
+        assert!(state.hire_as_instructor(1, 50).is_err());
+
+        // 未引退の冒険者は教官にできない（エレナ ID 2）
+        assert!(state.hire_as_instructor(2, 50).is_err());
+
+        // 教官解雇
+        assert!(state.dismiss_instructor(1).is_ok());
+        assert!(state.training_dojo.instructors.is_empty());
+    }
+
+    #[test]
     fn test_save_and_load_roundtrip() {
         let mut state = GameState::new_default();
         state.day = 120;

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use rand::Rng;
 use super::adventurer::{Adventurer, SkillType};
+use super::guild_rank::GuildRank;
 use super::inventory::InventoryItem;
 use super::party::Party;
 
@@ -360,3 +361,108 @@ impl Quest {
         }
     }
 }
+
+// ──────────────────────────────────────────────────────────────
+// クエスト自動生成（ギルドランク・勢力に応じた動的補充）
+// ──────────────────────────────────────────────────────────────
+
+/// ランクと勢力に応じてクエストを1件ランダム生成する
+pub fn generate_quest<R: Rng>(id: u64, guild_rank: GuildRank, rng: &mut R) -> Quest {
+    let faction = match rng.gen_range(0..3u8) {
+        0 => ClientFaction::Kingdom,
+        1 => ClientFaction::Commerce,
+        _ => ClientFaction::Civilian,
+    };
+    let difficulty = pick_difficulty(guild_rank, rng);
+    let (title, location, skill, reward, days) = quest_content(faction, difficulty, rng);
+    Quest::new(id, title, faction, location, difficulty, skill, reward, days)
+}
+
+fn pick_difficulty<R: Rng>(rank: GuildRank, rng: &mut R) -> QuestDifficulty {
+    let weights: &[(QuestDifficulty, u32)] = match rank {
+        GuildRank::F => &[(QuestDifficulty::F, 40), (QuestDifficulty::E, 50), (QuestDifficulty::D, 10)],
+        GuildRank::E => &[(QuestDifficulty::E, 40), (QuestDifficulty::D, 45), (QuestDifficulty::C, 15)],
+        GuildRank::D => &[(QuestDifficulty::D, 35), (QuestDifficulty::C, 45), (QuestDifficulty::B, 20)],
+        GuildRank::C => &[(QuestDifficulty::C, 30), (QuestDifficulty::B, 45), (QuestDifficulty::A, 25)],
+        GuildRank::B => &[(QuestDifficulty::B, 30), (QuestDifficulty::A, 45), (QuestDifficulty::S, 25)],
+        GuildRank::A | GuildRank::S => &[(QuestDifficulty::A, 30), (QuestDifficulty::S, 70)],
+    };
+    let total: u32 = weights.iter().map(|(_, w)| w).sum();
+    let mut roll = rng.gen_range(0..total);
+    for (diff, w) in weights {
+        if roll < *w {
+            return *diff;
+        }
+        roll -= w;
+    }
+    weights.last().unwrap().0
+}
+
+fn quest_content<R: Rng>(
+    faction: ClientFaction,
+    difficulty: QuestDifficulty,
+    rng: &mut R,
+) -> (String, String, SkillType, i64, u32) {
+    let (title, location, skill) = match faction {
+        ClientFaction::Kingdom  => KINGDOM_QUESTS[rng.gen_range(0..KINGDOM_QUESTS.len())],
+        ClientFaction::Commerce => COMMERCE_QUESTS[rng.gen_range(0..COMMERCE_QUESTS.len())],
+        ClientFaction::Civilian => CIVILIAN_QUESTS[rng.gen_range(0..CIVILIAN_QUESTS.len())],
+    };
+    let (base_reward, base_days) = match difficulty {
+        QuestDifficulty::F => (200i64,  1u32),
+        QuestDifficulty::E => (500,     1),
+        QuestDifficulty::D => (1200,    2),
+        QuestDifficulty::C => (2800,    3),
+        QuestDifficulty::B => (6000,    5),
+        QuestDifficulty::A => (12000,   7),
+        QuestDifficulty::S => (25000,   10),
+    };
+    let pct = rng.gen_range(80..=120) as i64;
+    let mut reward = base_reward * pct / 100;
+    // 勢力による報酬補正
+    reward = match faction {
+        ClientFaction::Commerce => (reward as f64 * 1.3) as i64,
+        ClientFaction::Civilian => (reward as f64 * 0.7) as i64,
+        ClientFaction::Kingdom  => reward,
+    };
+    (title.to_string(), location.to_string(), skill, reward, base_days)
+}
+
+static KINGDOM_QUESTS: &[(&str, &str, SkillType)] = &[
+    ("ゴブリン集落の殲滅討伐",    "南の深森",       SkillType::Swordsmanship),
+    ("オーク野営地への強襲作戦",  "北部山岳地帯",   SkillType::Tactics),
+    ("ワイバーン巣への警戒任務",  "王都北街道",     SkillType::Archery),
+    ("魔物の王城周辺調査",        "旧王城廃墟",     SkillType::Scouting),
+    ("街道の盗賊団一掃",          "南部街道",       SkillType::Swordsmanship),
+    ("魔導兵器の回収・無力化",    "古代遺跡地下",   SkillType::DisarmTrap),
+    ("騎士団との合同討伐演習",    "演習場・北郊外", SkillType::Tactics),
+    ("国境砦の守備支援",          "東部国境砦",     SkillType::Shieldwork),
+    ("魔将軍の部下の討伐",        "霧の沼地",       SkillType::AttackMagic),
+    ("封印が解けた魔物の再封印",  "封印の祠",       SkillType::SupportMagic),
+];
+
+static COMMERCE_QUESTS: &[(&str, &str, SkillType)] = &[
+    ("鉱山の魔物駆除と採掘再開",  "東部廃鉱山",     SkillType::Mining),
+    ("商隊護衛（王都〜港湾）",    "王都街道",       SkillType::Shieldwork),
+    ("希少鉱石の採掘・輸送",      "銀嶺鉱山",       SkillType::Mining),
+    ("工房向け魔獣素材の採取",    "魔の森",         SkillType::Scouting),
+    ("港湾の海賊討伐・荷物奪還",  "南部港湾都市",   SkillType::Swordsmanship),
+    ("秘薬の原料採取（緊急）",    "精霊の泉",       SkillType::Herbalism),
+    ("廃坑のガス噴出源の調査",    "旧炭坑",         SkillType::Scouting),
+    ("上質毛皮の大量採取依頼",    "北の狩場",       SkillType::Archery),
+    ("魔導石の大規模採掘調査",    "魔素の渓谷",     SkillType::Mining),
+    ("競合商会の妨害排除",        "交易路",         SkillType::Tactics),
+];
+
+static CIVILIAN_QUESTS: &[(&str, &str, SkillType)] = &[
+    ("村を脅かす魔猪の駆除",        "農村・南の丘",   SkillType::Swordsmanship),
+    ("薬草の緊急採取（村の疫病）",  "精霊の泉周辺",   SkillType::Herbalism),
+    ("子供たちの迷子捜索",          "東の迷宮洞窟",   SkillType::Scouting),
+    ("大型スライムの農地侵食対策",  "麦畑・東農村",   SkillType::MartialArts),
+    ("古い井戸の怪物退治",          "西の集落",       SkillType::DisarmTrap),
+    ("学者の遺跡調査の護衛",        "旧王都地下遺跡", SkillType::Scouting),
+    ("牧場の家畜を狙う魔獣退治",    "北牧場",         SkillType::Archery),
+    ("花祭りへの道の安全確保",      "祭礼街道",       SkillType::Swordsmanship),
+    ("廃屋に住み着いたゾンビ退治",  "廃村",           SkillType::HealingMagic),
+    ("市場の偽造品調査",            "王都市場",       SkillType::Scouting),
+];
