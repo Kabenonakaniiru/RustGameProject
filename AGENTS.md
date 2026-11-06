@@ -126,6 +126,21 @@ src/
   * `.devcontainer/Dockerfile`: `fcitx5`, `fcitx5-mozc`, `dbus-x11`, `im-config`, `locales`, `fonts-noto-cjk` の導入、`ja_JP.UTF-8` ロケール生成、`/etc/skel` への規定設定（Mozc有効化・半角全角およびCtrl+Spaceホットキー）および `/etc/profile.d/fcitx5-ime.sh` による環境変数の恒久化。
   * `.devcontainer/devcontainer.json`: `containerEnv` への `GTK_IM_MODULE`, `QT_IM_MODULE`, `XMODIFIERS`, `DBUS_SESSION_BUS_ADDRESS` 設定、および `postStartCommand` による自動起動フック（`init-ime.sh`）の追加。
   * `.devcontainer/init-ime.sh`: WSLg特有のWaylandバインド制限（error 71）を回避する `fcitx5 -d --disable wayland,waylandim` 起動制御、固定アドレスD-Busデーモンの自動立ち上げとヘルスチェックを実装。アプリコードを一切汚さず開発環境側で日本語入力を恒久完結。
+* [x] **クエスト供給・自動生成 / 冒険者リクルート / 引退・教官雇用フローの実装（2026-11-07 完了）**:
+  * `src/core/adventurer.rs`: `generate_recruit()` 関数を新規追加。名声連動の品質ティア判定（E〜Aランク）、ランダム名前テーブル（36名）、スキル最大Lv上限付き1〜3スキル生成。
+  * `src/core/state.rs`:
+    * `advance_day` に `refill_quests`（5日周期・上限8件）と `maybe_generate_recruit`（7日周期・確率: 50%+名声/4%、上限3名）を統合。
+    * `accept_recruit` / `decline_recruit`: 志願者採用・見送りメソッドを実装。
+    * `retire_adventurer`: 待機中冒険者を引退状態に遷移（全部隊から自動除外）。
+    * `hire_as_instructor`: 引退冒険者を訓練所教官として雇用（重複雇用ガード付き）。
+    * `dismiss_instructor`: 教官解雇メソッドを実装。
+  * `src/ui/views/adventurers.rs`: 大幅刷新。
+    * 冒険者一覧に「🚪 引退」ボタン（待機中のみ）・「🎓 教官採用」ボタン（引退済み）・「🏫 解雇」ボタン（既存教官）を追加。
+    * 訓練所教官一覧セクション（得意スキル・指導Lv・指導術Lv・日給表示）を追加。
+    * 志願者一覧セクション（「✅ 採用」「❌ 見送り」ボタン付き）を追加。
+    * ScrollArea による縦スクロール対応。`RecruitSnapshot` 型エイリアスで複雑型を整理。
+  * Unit テスト拡充（24件全パス）: `test_quest_auto_refill`, `test_recruit_generation_and_acceptance`, `test_retire_and_hire_as_instructor` の3テストを追加。
+  * Clippy: `cargo clippy --all-targets -- -D warnings` ゼロ警告・ゼロエラーでパス。
 
 ---
 
@@ -179,14 +194,16 @@ src/
 1. **日本語入力（IME）環境の整理・見直し**:
    * 「アプリコード側に特殊処理を一切入れず、環境側で完結させる」という基本方針の再徹底（`src/main.rs` はクリーンな状態に復帰済み）。
    * WSLg / X11 における素直な環境構築アプローチの確立。
-2. **クエスト供給・自動生成システム**:
-   * クエスト完了・消化に伴う新規依頼の定期的補充（クライアント勢力・ギルドランクに応じた生成）。
-3. **冒険者リクルート（志願者生成）システム**:
-   * 総合名声（Guild Fame）に基づく志願者の質・数・稀少スキルの決定論的生成。
-   * プレイヤーによる採用/見送りの選択UI。
-4. **冒険者の引退・教官雇用フロー**:
-   * 引退判断（手動）→ 訓練所教官への転換 → 教官としてのメンターシップ運用。
-   * 引退冒険者の老衰処理（訓練所からの退任・殿堂登録）。
+2. **訓練所タブの実装**:
+   * 訓練生の登録/卒業ボタン（待機中冒険者を `enroll_trainee`）の UI 専用ビューを作成。
+   * 教官ごとの指導ステータス・成長ログ表示。
+3. **収支台帳・財務グラフの改善**:
+   * 日次収支の推移記録（`finance.rs` への `LedgerEntry` 追加）。
+   * 月次サマリー表示（売上・手数料・経費・上納金の集計）。
+4. **クエスト掲示板の自動更新通知**:
+   * 新規クエスト追加時の目立つバッジ表示や未確認件数インジケーター。
+5. **冒険者老衰後の訓練所退任処理の完全化**:
+   * `process_yearly_aging` で Fallen になった教官を `training_dojo.instructors` から自動除外。
 
 ---
 
