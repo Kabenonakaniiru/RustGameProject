@@ -734,6 +734,13 @@ impl GameState {
         self.parties.iter().find(|p| p.member_ids.contains(&adventurer_id))
     }
 
+    /// 部隊の代表者（先頭の冒険者）を取得
+    pub fn get_party_leader(&self, party_id: u64) -> Option<&Adventurer> {
+        let party = self.parties.iter().find(|p| p.id == party_id)?;
+        let leader_id = party.leader_id()?;
+        self.adventurers.iter().find(|a| a.id == leader_id)
+    }
+
     /// 部隊が現在クエストに出撃中かどうか
     pub fn is_party_on_quest(&self, party_id: u64) -> bool {
         self.quests.iter().any(|q| q.is_dispatched && q.assigned_party_id == Some(party_id))

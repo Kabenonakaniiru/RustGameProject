@@ -46,6 +46,13 @@ impl Party {
         }
     }
 
+    /// 部隊の代表者（隊長・リーダー）の冒険者ID
+    /// 
+    /// 先頭に配属された冒険者が代表者となる。
+    pub fn leader_id(&self) -> Option<u64> {
+        self.member_ids.first().copied()
+    }
+
     /// クエスト成功等による連携値の上昇
     pub fn gain_cooperation(&mut self, amount: f32) {
         self.cooperation = (self.cooperation + amount).clamp(0.0, 100.0);

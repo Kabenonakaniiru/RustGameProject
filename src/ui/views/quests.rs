@@ -12,6 +12,16 @@ enum QuestAction {
     ClearReports,
 }
 
+struct AvailablePartyDisplay {
+    id: u64,
+    name: String,
+    member_count: usize,
+    synergy: f32,
+    leader_name: String,
+    total_cp: u32,
+    member_details: Vec<(String, String, u32)>, // (名前, 役割, 戦力)
+}
+
 pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
     let mut actions = Vec::new();
 
@@ -124,9 +134,10 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
     for party in &state.parties {
         let is_on_quest = state.is_party_on_quest(party.id);
         let synergy = party.calculate_effective_synergy(&state.adventurers);
+        let leader = state.get_party_leader(party.id);
 
         ui.group(|ui| {
-            // 部隊ヘッダー行
+            // 1. 部隊ヘッダー行
             ui.horizontal_wrapped(|ui| {
                 ui.strong(format!("『{}』", party.name));
                 if is_on_quest {
@@ -152,72 +163,139 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
                     }
             });
 
+            ui.add_space(2.0);
+
+            // 2. 部隊代表者行（デフォルト常時表示）
+            if let Some(leader_adv) = leader {
+                let others_count = party.member_ids.len().saturating_sub(1);
+                let total_cp: u32 = party
+                    .member_ids
+                    .iter()
+                    .filter_map(|&id| state.adventurers.iter().find(|a| a.id == id))
+                    .map(Adventurer::total_combat_power)
+                    .sum();
+
+                ui.horizontal_wrapped(|ui| {
+                    ui.colored_label(egui::Color32::from_rgb(255, 215, 0), "👑 部隊代表:");
+                    ui.strong(&leader_adv.name);
+                    ui.label(format!(
+                        "［{} / {} / 戦力{}］",
+                        leader_adv.rank,
+                        leader_adv.primary_role(),
+                        leader_adv.total_combat_power()
+                    ));
+                    ui.label(leader_adv.status.display_name());
+                    if others_count > 0 {
+                        ui.colored_label(
+                            egui::Color32::from_rgb(170, 200, 225),
+                            format!("（他 {others_count}名 所属 ｜ 部隊総戦力: {total_cp}）"),
+                        );
+                    } else {
+                        ui.colored_label(
+                            egui::Color32::from_rgb(170, 200, 225),
+                            format!("（単独編成 ｜ 部隊総戦力: {total_cp}）"),
+                        );
+                    }
+                });
+            } else {
+                ui.colored_label(
+                    egui::Color32::from_rgb(180, 180, 180),
+                    "⚪ 代表者: なし（未編成・下記のアコーディオンを開いて冒険者を配属してください）",
+                );
+            }
+
             ui.add_space(4.0);
 
-            // 部隊メンバーリスト
-            if party.member_ids.is_empty() {
-                ui.label("（所属している冒険者はいません。下の候補から配属してください）");
+            // 3. アコーディオン（メンバー詳細一覧・編成を開閉）
+            // メンバーがいる部隊はデフォルトで非表示（折りたたみ）にして一覧性を確保
+            let accordion_label = if party.member_ids.is_empty() {
+                "➕ 冒険者を配属する（未編成・ここをクリック）".to_string()
             } else {
-                egui::Grid::new(format!("party_grid_{}", party.id))
-                    .striped(true)
-                    .min_col_width(70.0)
-                    .show(ui, |ui| {
-                        ui.strong("冒険者名");
-                        ui.strong("ランク");
-                        ui.strong("役割");
-                        ui.strong("戦闘力");
-                        ui.strong("状態");
-                        if !is_on_quest {
-                            ui.strong("操作");
-                        }
-                        ui.end_row();
+                format!(
+                    "👥 部隊メンバー一覧・編成を開閉 (全{}名 / 空き{}枠)",
+                    party.member_ids.len(),
+                    10 - party.member_ids.len()
+                )
+            };
 
-                        for &m_id in &party.member_ids {
-                            if let Some(adv) = state.adventurers.iter().find(|a| a.id == m_id) {
-                                ui.label(&adv.name);
-                                ui.label(&adv.rank);
-                                ui.label(adv.primary_role());
-                                ui.label(format!("{}", adv.total_combat_power()));
-                                ui.label(adv.status.display_name());
+            egui::CollapsingHeader::new(accordion_label)
+                .id_salt(format!("party_collapse_{}", party.id))
+                .default_open(party.member_ids.is_empty())
+                .show(ui, |ui| {
+                    ui.add_space(2.0);
 
-                                if !is_on_quest
-                                    && ui.button("❌ 外す").clicked() {
-                                        actions.push(QuestAction::RemovePartyMember {
+                    // 部隊メンバーリスト
+                    if party.member_ids.is_empty() {
+                        ui.label("（所属している冒険者はいません。下の候補から配属してください）");
+                    } else {
+                        egui::Grid::new(format!("party_grid_{}", party.id))
+                            .striped(true)
+                            .min_col_width(70.0)
+                            .show(ui, |ui| {
+                                ui.strong("区分");
+                                ui.strong("冒険者名");
+                                ui.strong("ランク");
+                                ui.strong("役割");
+                                ui.strong("戦闘力");
+                                ui.strong("状態");
+                                if !is_on_quest {
+                                    ui.strong("操作");
+                                }
+                                ui.end_row();
+
+                                for (idx, &m_id) in party.member_ids.iter().enumerate() {
+                                    if let Some(adv) = state.adventurers.iter().find(|a| a.id == m_id) {
+                                        if idx == 0 {
+                                            ui.colored_label(egui::Color32::from_rgb(255, 215, 0), "👑 代表");
+                                        } else {
+                                            ui.colored_label(egui::Color32::from_rgb(180, 180, 180), "　 隊員");
+                                        }
+                                        ui.label(&adv.name);
+                                        ui.label(&adv.rank);
+                                        ui.label(adv.primary_role());
+                                        ui.label(format!("{}", adv.total_combat_power()));
+                                        ui.label(adv.status.display_name());
+
+                                        if !is_on_quest
+                                            && ui.button("❌ 外す").clicked() {
+                                                actions.push(QuestAction::RemovePartyMember {
+                                                    party_id: party.id,
+                                                    adv_id: adv.id,
+                                                });
+                                            }
+                                        ui.end_row();
+                                    }
+                                }
+                            });
+                    }
+
+                    // メンバー追加エリア（出撃中でなく、枠に余裕がある場合）
+                    if !is_on_quest && party.member_ids.len() < 10 {
+                        ui.add_space(6.0);
+                        ui.horizontal_wrapped(|ui| {
+                            ui.label("➕ 冒険者を配属:");
+                            if unassigned_adventurers.is_empty() {
+                                ui.label("（配属可能な未所属冒険者はいません）");
+                            } else {
+                                for adv in &unassigned_adventurers {
+                                    let btn_text = format!(
+                                        "{} ({}・戦力{})",
+                                        adv.name,
+                                        adv.primary_role(),
+                                        adv.total_combat_power()
+                                    );
+                                    if ui.button(btn_text).clicked() {
+                                        actions.push(QuestAction::AddPartyMember {
                                             party_id: party.id,
                                             adv_id: adv.id,
                                         });
                                     }
-                                ui.end_row();
+                                }
                             }
-                        }
-                    });
-            }
-
-            // メンバー追加エリア（出撃中でなく、枠に余裕がある場合）
-            if !is_on_quest && party.member_ids.len() < 10 {
-                ui.add_space(4.0);
-                ui.horizontal_wrapped(|ui| {
-                    ui.label("➕ 冒険者を配属:");
-                    if unassigned_adventurers.is_empty() {
-                        ui.label("（配属可能な未所属冒険者はいません）");
-                    } else {
-                        for adv in &unassigned_adventurers {
-                            let btn_text = format!(
-                                "{} ({}・戦力{})",
-                                adv.name,
-                                adv.primary_role(),
-                                adv.total_combat_power()
-                            );
-                            if ui.button(btn_text).clicked() {
-                                actions.push(QuestAction::AddPartyMember {
-                                    party_id: party.id,
-                                    adv_id: adv.id,
-                                });
-                            }
-                        }
+                        });
                     }
+                    ui.add_space(2.0);
                 });
-            }
         });
         ui.add_space(6.0);
     }
@@ -257,7 +335,7 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
     ui.separator();
 
     // 派遣可能なパーティの一覧（メンバーが1人以上いて、全メンバーが待機可能）
-    let available_parties: Vec<(u64, String, usize, f32)> = state
+    let available_parties: Vec<AvailablePartyDisplay> = state
         .parties
         .iter()
         .filter(|p| {
@@ -272,7 +350,27 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
         })
         .map(|p| {
             let synergy = p.calculate_effective_synergy(&state.adventurers);
-            (p.id, p.name.clone(), p.member_ids.len(), synergy)
+            let members: Vec<&Adventurer> = p
+                .member_ids
+                .iter()
+                .filter_map(|&id| state.adventurers.iter().find(|a| a.id == id))
+                .collect();
+            let leader_name = members.first().map_or("なし", |a| a.name.as_str()).to_string();
+            let total_cp: u32 = members.iter().map(|&a| a.total_combat_power()).sum();
+            let member_details = members
+                .iter()
+                .map(|a| (a.name.clone(), a.primary_role(), a.total_combat_power()))
+                .collect();
+
+            AvailablePartyDisplay {
+                id: p.id,
+                name: p.name.clone(),
+                member_count: p.member_ids.len(),
+                synergy,
+                leader_name,
+                total_cp,
+                member_details,
+            }
         })
         .collect();
 
@@ -300,11 +398,21 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
             // 派遣操作・ステータス
             ui.horizontal_wrapped(|ui| {
                 if quest.is_dispatched {
+                    let leader_name = quest.assigned_party_id.and_then(|p_id| {
+                        state.get_party_leader(p_id).map(|a| a.name.clone())
+                    });
+
+                    let party_display = match (&quest.assigned_party_name, leader_name) {
+                        (Some(name), Some(leader)) => format!("{name} ［代表: {leader}］"),
+                        (Some(name), None) => name.clone(),
+                        _ => "不明".to_string(),
+                    };
+
                     ui.colored_label(
                         egui::Color32::from_rgb(255, 180, 50),
                         format!(
                             "⏳ 派遣中 (担当部隊: {}, 残り: {}日)",
-                            quest.assigned_party_name.as_deref().unwrap_or("不明"),
+                            party_display,
                             quest.days_remaining
                         ),
                     );
@@ -316,14 +424,41 @@ pub fn render(ui: &mut egui::Ui, state: &mut GameState) {
                             "（出撃可能な待機部隊がありません。部隊に冒険者を配属してください）",
                         );
                     } else {
-                        for (p_id, p_name, count, synergy) in &available_parties {
-                            let btn_label = format!(
-                                "『{p_name}』({count}名/倍率{synergy:.2}) を派遣"
-                            );
-                            if ui.button(btn_label).clicked() {
+                        for p in &available_parties {
+                            let btn_label = if p.member_count > 1 {
+                                format!(
+                                    "『{}』(代表: {} 他{}名) を派遣",
+                                    p.name,
+                                    p.leader_name,
+                                    p.member_count - 1
+                                )
+                            } else {
+                                format!(
+                                    "『{}』(代表: {}) を派遣",
+                                    p.name,
+                                    p.leader_name
+                                )
+                            };
+
+                            let btn = ui.button(btn_label);
+                            let btn_hovered = btn.on_hover_ui(|ui| {
+                                ui.strong(format!("部隊: 『{}』", p.name));
+                                ui.label(format!(
+                                    "総戦力: {} ｜ 実効連携倍率: x{:.2}",
+                                    p.total_cp, p.synergy
+                                ));
+                                ui.separator();
+                                ui.label("所属メンバー構成:");
+                                for (idx, (name, role, cp)) in p.member_details.iter().enumerate() {
+                                    let tag = if idx == 0 { "👑 代表" } else { "　 隊員" };
+                                    ui.label(format!("{tag}: {name} ({role} / 戦力{cp})"));
+                                }
+                            });
+
+                            if btn_hovered.clicked() {
                                 actions.push(QuestAction::Dispatch {
                                     quest_idx: i,
-                                    party_id: *p_id,
+                                    party_id: p.id,
                                 });
                             }
                         }

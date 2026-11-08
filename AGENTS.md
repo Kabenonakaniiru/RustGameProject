@@ -141,6 +141,14 @@ src/
     * ScrollArea による縦スクロール対応。`RecruitSnapshot` 型エイリアスで複雑型を整理。
   * Unit テスト拡充（24件全パス）: `test_quest_auto_refill`, `test_recruit_generation_and_acceptance`, `test_retire_and_hire_as_instructor` の3テストを追加。
   * Clippy: `cargo clippy --all-targets -- -D warnings` ゼロ警告・ゼロエラーでパス。
+* [x] **部隊一覧の代表者表示およびアコーディオン展開による一覧性向上（2026-11-09 完了）**:
+  * `src/core/party.rs`: `leader_id(&self) -> Option<u64>`（先頭メンバーを部隊代表・隊長として取得）を実装。
+  * `src/core/state.rs`: `get_party_leader(&self, party_id: u64) -> Option<&Adventurer>` を実装。
+  * `src/ui/views/quests.rs`:
+    * 部隊（パーティ）編成・指揮セクション: 各部隊カードに代表者サマリー行（👑部隊代表、ランク、役割、戦力、部隊総戦力、他所属人数）を常時表示。全メンバーグリッドおよび冒険者配属フォームは `egui::CollapsingHeader` によるアコーディオン化を実施し、メンバー所属時はデフォルト非表示（折りたたみ）にして一覧性を大幅確保（未編成部隊のみ初期展開）。メンバーグリッド内にも「👑 代表」「隊員」区分を明示。
+    * 受付・クエスト一覧＆出撃命令セクション: 派遣ボタンに代表者名（`『部隊名』(代表: 〇〇 他N名) を派遣`）を表示。ボタンホバー時のツールチップ（`on_hover_ui`）で部隊総戦力、実効連携倍率、所属メンバー構成一覧を即時確認可能に。派遣中表示にも代表者名を併記。
+  * Unit テスト拡充（25件全パス）: `test_party_leader_identification`（初期部隊・空部隊・配属後の代表者追従テスト）を追加。
+  * Clippy: `cargo clippy --all-targets -- -D warnings` ゼロ警告・ゼロエラーでパス。
 
 ---
 

@@ -443,4 +443,28 @@ mod tests {
         state.clear_quest_reports();
         assert!(state.latest_quest_reports.is_empty());
     }
+
+    #[test]
+    fn test_party_leader_identification() {
+        let mut state = GameState::new_default();
+        let first_party_id = state.parties[0].id;
+
+        // 初期パーティには先頭にアレン（ID 1）がいる
+        assert_eq!(state.parties[0].leader_id(), Some(1));
+        let leader = state.get_party_leader(first_party_id).expect("Should have a leader");
+        assert_eq!(leader.name, "アレン");
+
+        // 新規空パーティを結成
+        let empty_party_id = state.create_party("第三分隊").expect("Should succeed");
+        let empty_party = state.parties.iter().find(|p| p.id == empty_party_id).unwrap();
+        assert_eq!(empty_party.leader_id(), None);
+        assert!(state.get_party_leader(empty_party_id).is_none());
+
+        // 待機中のクルト（ID 5）を配属するとクルトが代表者になる
+        state.add_party_member(empty_party_id, 5).expect("Should add Kuruto");
+        let new_party = state.parties.iter().find(|p| p.id == empty_party_id).unwrap();
+        assert_eq!(new_party.leader_id(), Some(5));
+        let kuruto_leader = state.get_party_leader(empty_party_id).expect("Should have Kuruto");
+        assert_eq!(kuruto_leader.name, "クルト");
+    }
 }
