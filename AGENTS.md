@@ -149,6 +149,18 @@ src/
     * 受付・クエスト一覧＆出撃命令セクション: 派遣ボタンに代表者名（`『部隊名』(代表: 〇〇 他N名) を派遣`）を表示。ボタンホバー時のツールチップ（`on_hover_ui`）で部隊総戦力、実効連携倍率、所属メンバー構成一覧を即時確認可能に。派遣中表示にも代表者名を併記。
   * Unit テスト拡充（25件全パス）: `test_party_leader_identification`（初期部隊・空部隊・配属後の代表者追従テスト）を追加。
   * Clippy: `cargo clippy --all-targets -- -D warnings` ゼロ警告・ゼロエラーでパス。
+* [x] **現在表示中の画面サイズ（モニター解像度）に最も近いサイズへの自動最適化および高解像度（4K/WQHD）プリセット対応（2026-11-13 完了）**:
+  * `src/ui/config.rs`:
+    * `WindowSizePreset` に `Auto`（自動最適化）、`Wqhd` (2560x1440)、`FourK` (3840x2160) を追加。
+    * `closest_preset(width, height)`: 検出されたモニター解像度と各固定プリセット間のユークリッド距離を計算し、現在表示中の画面サイズに最も近いプリセットを自動判定するアルゴリズムを実装。
+    * `recommended_zoom()`: 4K (1.8x) や WQHD (1.4x)、FullHD (1.1x) などの画面サイズに応じた視認性の高い推奨UI拡大倍率を定義。
+    * `UserSettings::default()` のデフォルトウィンドウプリセットを `WindowSizePreset::Auto` に設定。
+  * `src/app.rs`:
+    * 初回起動時（または `Auto` 設定時）に `egui::ViewportInfo.monitor_size` を検知し、現在表示中のモニター解像度に最も近いサイズ＆推奨ズーム倍率を即時適用する `has_auto_adjusted_size` ライフサイクルフローを統合。
+  * `src/ui/components/settings.rs`:
+    * 環境設定の解像度プリセット選択肢に `Auto`（画面サイズに最適化）を追加し、手動クリック時や「初期設定に戻す」実行時にも現在のモニターサイズに応じた即時自動最適化を実行可能に。
+  * Unit テスト拡充（27件全パス）: `test_closest_preset_detection`, `test_recommended_zoom`, `test_window_size_presets` の 4K/WQHD/Auto 対応、デフォルト値検証テストを追加。
+  * Clippy: `cargo clippy --all-targets -- -D warnings` ゼロ警告・ゼロエラーでパス。
 
 ---
 

@@ -1,5 +1,5 @@
 use crate::core::{self, GameState};
-use crate::ui::config::{UserSettings, SETTINGS_FILE_PATH};
+use crate::ui::config::{UserSettings, WindowSizePreset, SETTINGS_FILE_PATH};
 use crate::ui::views::setup::{SetupAction, SetupForm};
 use crate::ui::views::title_screen::TitleAction;
 use crate::ui::{views, Tab};
@@ -24,6 +24,8 @@ pub struct GuildApp {
     pub status_message: Option<String>,
     pub settings: UserSettings,
     pub is_settings_open: bool,
+    /// 初回モニターサイズ自動検出の完了フラグ
+    pub has_auto_adjusted_size: bool,
 }
 
 impl Default for GuildApp {
@@ -44,6 +46,7 @@ impl GuildApp {
             status_message: None,
             settings,
             is_settings_open: false,
+            has_auto_adjusted_size: false,
         }
     }
 
@@ -100,6 +103,22 @@ impl GuildApp {
 
 impl eframe::App for GuildApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        // 初回起動時または Auto 設定時の画面サイズ自動検出・最適化
+        if !self.has_auto_adjusted_size
+            && let Some(monitor_size) = ui.ctx().input(|i| i.viewport().monitor_size)
+        {
+            if self.settings.window_preset == WindowSizePreset::Auto {
+                let closest = WindowSizePreset::closest_preset(monitor_size.x, monitor_size.y);
+                let [w, h] = closest.size();
+                let zoom = closest.recommended_zoom();
+
+                ui.ctx().send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(w, h)));
+                self.settings.window_preset = closest;
+                self.settings.zoom_factor = zoom;
+            }
+            self.has_auto_adjusted_size = true;
+        }
+
         // キーボードショートカット
         ui.input(|i| {
             // Esc キーで設定メニューの開閉をトグル

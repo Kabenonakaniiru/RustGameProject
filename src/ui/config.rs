@@ -18,6 +18,8 @@ pub const MIN_WINDOW_HEIGHT: f32 = 520.0;
 /// ウィンドウ解像度プリセット
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum WindowSizePreset {
+    /// 自動（現在表示中の画面サイズに最も近いサイズを自動検出・最適化）
+    Auto,
     /// 小型ディスプレイ・ノートPC向け (1024 x 640, 16:10)
     Compact,
     /// 標準推奨サイズ (1400 x 800, 7:4)
@@ -26,25 +28,45 @@ pub enum WindowSizePreset {
     Large,
     /// フルHD (1920 x 1080, 16:9)
     FullHd,
+    /// WQHD / 2.5K (2560 x 1440, 16:9)
+    Wqhd,
+    /// 4K / Ultra HD (3840 x 2160, 16:9)
+    FourK,
     /// 任意のカスタム解像度
     Custom(f32, f32),
 }
 
 impl WindowSizePreset {
-    pub const ALL: [Self; 4] = [
+    /// 固定解像度プリセット一覧（昇順）
+    pub const FIXED_PRESETS: [Self; 6] = [
         Self::Compact,
         Self::Standard,
         Self::Large,
         Self::FullHd,
+        Self::Wqhd,
+        Self::FourK,
+    ];
+
+    /// UI設定メニューで選択可能なプリセット一覧（Autoを含む）
+    pub const ALL: [Self; 7] = [
+        Self::Auto,
+        Self::Compact,
+        Self::Standard,
+        Self::Large,
+        Self::FullHd,
+        Self::Wqhd,
+        Self::FourK,
     ];
 
     /// プリセットの幅と高さを取得
     pub const fn size(&self) -> [f32; 2] {
         match self {
+            Self::Auto | Self::FullHd => [1920.0, 1080.0], // Auto は自動検出前の初期推奨サイズ
             Self::Compact => [1024.0, 640.0],
             Self::Standard => [DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT],
             Self::Large => [1600.0, 900.0],
-            Self::FullHd => [1920.0, 1080.0],
+            Self::Wqhd => [2560.0, 1440.0],
+            Self::FourK => [3840.0, 2160.0],
             Self::Custom(w, h) => [*w, *h],
         }
     }
@@ -52,10 +74,13 @@ impl WindowSizePreset {
     /// 表示用ラベル
     pub const fn label(&self) -> &'static str {
         match self {
+            Self::Auto => "自動 (画面サイズに最適化)",
             Self::Compact => "コンパクト (1024x640)",
             Self::Standard => "標準 (1400x800)",
             Self::Large => "ラージ (1600x900)",
             Self::FullHd => "フルHD (1920x1080)",
+            Self::Wqhd => "WQHD (2560x1440)",
+            Self::FourK => "4K UHD (3840x2160)",
             Self::Custom(_, _) => "カスタム解像度",
         }
     }
@@ -70,13 +95,49 @@ impl WindowSizePreset {
         }
     }
 
+    /// 与えられた画面解像度（幅、高さ）に最も近い固定プリセットを判定
+    pub fn closest_preset(width: f32, height: f32) -> Self {
+        let mut best_preset = Self::Standard;
+        let mut min_distance = f32::MAX;
+
+        for preset in Self::FIXED_PRESETS {
+            let [pw, ph] = preset.size();
+            let dw = width - pw;
+            let dh = height - ph;
+            let distance = dw * dw + dh * dh;
+
+            if distance < min_distance {
+                min_distance = distance;
+                best_preset = preset;
+            }
+        }
+
+        best_preset
+    }
+
+    /// プリセットに応じた推奨UIズーム倍率
+    ///
+    /// 高解像度ディスプレイ（4K / WQHD）で文字やUIが小さくなりすぎないよう調整
+    pub const fn recommended_zoom(&self) -> f32 {
+        match self {
+            Self::FourK => 1.8,
+            Self::Wqhd => 1.4,
+            Self::FullHd => 1.1,
+            Self::Large | Self::Standard | Self::Auto | Self::Custom(_, _) => 1.0,
+            Self::Compact => 0.9,
+        }
+    }
+
     /// 文字列からのパース（環境変数等で使用）
     pub fn from_str_name(s: &str) -> Option<Self> {
         match s.to_ascii_lowercase().as_str() {
+            "auto" | "detect" => Some(Self::Auto),
             "compact" | "small" => Some(Self::Compact),
             "standard" | "default" => Some(Self::Standard),
             "large" => Some(Self::Large),
             "fullhd" | "1080p" => Some(Self::FullHd),
+            "wqhd" | "1440p" | "2k" => Some(Self::Wqhd),
+            "fourk" | "4k" | "2160p" | "uhd" => Some(Self::FourK),
             _ => None,
         }
     }
@@ -106,7 +167,7 @@ pub struct UserSettings {
 impl Default for UserSettings {
     fn default() -> Self {
         Self {
-            window_preset: WindowSizePreset::Standard,
+            window_preset: WindowSizePreset::Auto,
             fullscreen: false,
             zoom_factor: 1.0,
             bgm_volume: 80,
@@ -121,7 +182,12 @@ impl UserSettings {
     /// 設定内容を egui コンテキストおよび viewport に即時適用
     pub fn apply_to_context(&self, ctx: &egui::Context) {
         ctx.set_zoom_factor(self.zoom_factor);
-        let [w, h] = self.window_preset.size();
+        let [w, h] = if self.window_preset == WindowSizePreset::Auto {
+            ctx.input(|i| i.viewport().monitor_size)
+                .map_or_else(|| self.window_preset.size(), |monitor| WindowSizePreset::closest_preset(monitor.x, monitor.y).size())
+        } else {
+            self.window_preset.size()
+        };
         ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(w, h)));
         ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.fullscreen));
     }
@@ -160,7 +226,7 @@ impl Default for WindowConfig {
     fn default() -> Self {
         Self {
             title: APP_TITLE,
-            default_size: WindowSizePreset::Standard.size(),
+            default_size: WindowSizePreset::Auto.size(),
             min_size: [MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT],
             decorations: true,
             resizable: true,
@@ -289,6 +355,9 @@ mod tests {
 
     #[test]
     fn test_window_size_presets() {
+        let auto = WindowSizePreset::Auto;
+        assert_eq!(auto.size(), [1920.0, 1080.0]);
+
         let compact = WindowSizePreset::Compact;
         assert_eq!(compact.size(), [1024.0, 640.0]);
         assert!((compact.aspect_ratio() - 1.6).abs() < 0.01);
@@ -304,9 +373,50 @@ mod tests {
         let fullhd = WindowSizePreset::FullHd;
         assert_eq!(fullhd.size(), [1920.0, 1080.0]);
 
+        let wqhd = WindowSizePreset::Wqhd;
+        assert_eq!(wqhd.size(), [2560.0, 1440.0]);
+        assert!((wqhd.aspect_ratio() - (16.0 / 9.0)).abs() < 0.01);
+
+        let fourk = WindowSizePreset::FourK;
+        assert_eq!(fourk.size(), [3840.0, 2160.0]);
+        assert!((fourk.aspect_ratio() - (16.0 / 9.0)).abs() < 0.01);
+
+        assert_eq!(WindowSizePreset::from_str_name("auto"), Some(WindowSizePreset::Auto));
         assert_eq!(WindowSizePreset::from_str_name("compact"), Some(WindowSizePreset::Compact));
+        assert_eq!(WindowSizePreset::from_str_name("standard"), Some(WindowSizePreset::Standard));
+        assert_eq!(WindowSizePreset::from_str_name("large"), Some(WindowSizePreset::Large));
         assert_eq!(WindowSizePreset::from_str_name("fullhd"), Some(WindowSizePreset::FullHd));
+        assert_eq!(WindowSizePreset::from_str_name("wqhd"), Some(WindowSizePreset::Wqhd));
+        assert_eq!(WindowSizePreset::from_str_name("4k"), Some(WindowSizePreset::FourK));
         assert_eq!(WindowSizePreset::from_str_name("unknown"), None);
+    }
+
+    #[test]
+    fn test_closest_preset_detection() {
+        // 4K ディスプレイ -> 4K UHD
+        assert_eq!(WindowSizePreset::closest_preset(3840.0, 2160.0), WindowSizePreset::FourK);
+        // WQHD ディスプレイ -> WQHD
+        assert_eq!(WindowSizePreset::closest_preset(2560.0, 1440.0), WindowSizePreset::Wqhd);
+        // フルHD ディスプレイ -> フルHD
+        assert_eq!(WindowSizePreset::closest_preset(1920.0, 1080.0), WindowSizePreset::FullHd);
+        // WUXGA (1920x1200) -> 最も近いフルHD
+        assert_eq!(WindowSizePreset::closest_preset(1920.0, 1200.0), WindowSizePreset::FullHd);
+        // 1600x900 -> Large
+        assert_eq!(WindowSizePreset::closest_preset(1600.0, 900.0), WindowSizePreset::Large);
+        // 1366x768 ノートPC -> Standard
+        assert_eq!(WindowSizePreset::closest_preset(1366.0, 768.0), WindowSizePreset::Standard);
+        // 1024x768 / 1024x640 -> Compact
+        assert_eq!(WindowSizePreset::closest_preset(1024.0, 768.0), WindowSizePreset::Compact);
+    }
+
+    #[test]
+    fn test_recommended_zoom() {
+        assert!((WindowSizePreset::FourK.recommended_zoom() - 1.8).abs() < 0.01);
+        assert!((WindowSizePreset::Wqhd.recommended_zoom() - 1.4).abs() < 0.01);
+        assert!((WindowSizePreset::FullHd.recommended_zoom() - 1.1).abs() < 0.01);
+        assert!((WindowSizePreset::Large.recommended_zoom() - 1.0).abs() < 0.01);
+        assert!((WindowSizePreset::Standard.recommended_zoom() - 1.0).abs() < 0.01);
+        assert!((WindowSizePreset::Compact.recommended_zoom() - 0.9).abs() < 0.01);
     }
 
     #[test]
@@ -363,7 +473,7 @@ mod tests {
     fn test_user_settings_default_values() {
         let defaults = UserSettings::default();
 
-        assert_eq!(defaults.window_preset, WindowSizePreset::Standard);
+        assert_eq!(defaults.window_preset, WindowSizePreset::Auto);
         assert!(!defaults.fullscreen);
         assert!((defaults.zoom_factor - 1.0).abs() < 0.001);
         assert_eq!(defaults.bgm_volume, 80);

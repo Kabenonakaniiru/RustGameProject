@@ -48,12 +48,32 @@ pub fn render(
                         for preset in WindowSizePreset::ALL {
                             let is_current = settings.window_preset == preset;
                             if ui.selectable_label(is_current, preset.label()).clicked() {
-                                settings.window_preset = preset;
-                                should_apply_viewport = true;
-                                *status_msg = Some(format!(
-                                    "📐 解像度を {} に変更しました",
-                                    preset.label()
-                                ));
+                                if preset == WindowSizePreset::Auto {
+                                    if let Some(m) = ctx.input(|i| i.viewport().monitor_size) {
+                                        let closest = WindowSizePreset::closest_preset(m.x, m.y);
+                                        let [w, h] = closest.size();
+                                        let zoom = closest.recommended_zoom();
+                                        settings.window_preset = closest;
+                                        settings.zoom_factor = zoom;
+                                        ctx.set_zoom_factor(zoom);
+                                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(w, h)));
+                                        *status_msg = Some(format!(
+                                            "🖥️ 画面サイズ ({:.0}x{:.0}) に最適化: {} (ズーム {:.0}%)",
+                                            m.x, m.y, closest.label(), zoom * 100.0
+                                        ));
+                                    } else {
+                                        settings.window_preset = WindowSizePreset::Auto;
+                                        should_apply_viewport = true;
+                                        *status_msg = Some("🖥️ 画面サイズの自動最適化を有効にしました".to_string());
+                                    }
+                                } else {
+                                    settings.window_preset = preset;
+                                    should_apply_viewport = true;
+                                    *status_msg = Some(format!(
+                                        "📐 解像度を {} に変更しました",
+                                        preset.label()
+                                    ));
+                                }
                             }
                         }
                     });
@@ -174,13 +194,27 @@ pub fn render(
                     // デフォルト復元ボタン
                     if ui
                         .button("🔄 初期設定に戻す")
-                        .on_hover_text("すべての設定をデフォルト値にリセットします")
+                        .on_hover_text("すべての設定をデフォルト値にリセットし、現在の画面サイズに最適化します")
                         .clicked()
                     {
                         *settings = UserSettings::default();
-                        ctx.set_zoom_factor(settings.zoom_factor);
-                        should_apply_viewport = true;
-                        *status_msg = Some("🔄 設定を初期値にリセットしました".to_string());
+                        if let Some(m) = ctx.input(|i| i.viewport().monitor_size) {
+                            let closest = WindowSizePreset::closest_preset(m.x, m.y);
+                            let [w, h] = closest.size();
+                            let zoom = closest.recommended_zoom();
+                            settings.window_preset = closest;
+                            settings.zoom_factor = zoom;
+                            ctx.set_zoom_factor(zoom);
+                            ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(w, h)));
+                            *status_msg = Some(format!(
+                                "🔄 初期設定にリセットし、画面サイズに最適化しました: {}",
+                                closest.label()
+                            ));
+                        } else {
+                            ctx.set_zoom_factor(settings.zoom_factor);
+                            should_apply_viewport = true;
+                            *status_msg = Some("🔄 設定を初期値にリセットしました".to_string());
+                        }
                     }
 
                     ui.separator();
