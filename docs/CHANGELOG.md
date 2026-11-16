@@ -76,3 +76,25 @@
 * [x] **画面サイズ自動最適化および高解像度（4K/WQHD）対応（2026-11-13）**:
   * `src/ui/config.rs`: `WindowSizePreset` に `Auto`, `Wqhd`, `FourK` 追加、`closest_preset`, `recommended_zoom` 実装。
   * `src/app.rs`: 初回起動時のモニターサイズ検知と自動最適化適用。
+
+---
+
+## Phase 3 継続（2026-11-17）
+
+### 完了
+* [x] **訓練所タブ（🥋 訓練所・道場）の実装**:
+  * `src/core/training.rs`: `TrainingDojo` に `recent_training_logs` フィールド追加（最大50件）、`is_trainee()` / `is_instructor()` ヘルパー追加、`suggested_instructor_salary()` 追加、`process_daily_training()` を `&mut self` に変更してログ自動蓄積。
+  * `src/core/state.rs`: `enroll_trainee()` / `remove_trainee()` メソッド追加（ステータス `Training` ⇔ `Standby` 連動）。老衰永眠時に教官リストからも自動退任する処理を `process_yearly_aging` に追加。
+  * `src/ui/views/training.rs`: 新規ビュー。教官一覧・就任候補・訓練生一覧・入門候補・成長ログを含む。
+  * `src/ui/mod.rs` / `src/app.rs` / `src/ui/views/mod.rs`: `Tab::TrainingDojo` 追加・routing 接続。
+  * Unit テスト 2件追加（計29件全パス）: `test_enroll_and_graduate_trainee`, `test_deceased_instructor_auto_removed`。
+
+### 次フェーズ以降への課題メモ
+* [ ] **セーブデータ複数スロット対応（要望あり）**:
+  * 現状: `save_data.json` 1ファイル固定（`const SAVE_FILE_PATH` / `has_save_data()` / `save()` / `load()`）。
+  * 方針案:
+    * セーブスロットを複数（例: スロット1〜5）持てる構造に変更。
+    * `save_data_slot1.json` ～ `save_data_slot5.json` のようなファイル名規則、またはサブディレクトリ管理（`saves/slot01/data.json`）。
+    * タイトル画面の「ロード」でスロット選択 UI を表示（ギルド名・マスター名・日付・ギルドランクをサマリー表示）。
+    * `save()` 時もスロット選択ダイアログか、「上書き確認付き現在スロット保存」とする。
+    * `has_save_data()` → `list_save_slots() -> Vec<SaveSlotInfo>` に刷新。

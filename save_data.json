@@ -1,0 +1,506 @@
+{
+  "guild_name": "冒険者ギルド",
+  "master_name": "壁の中にいる",
+  "location": "学術都市",
+  "gold": -1720,
+  "day": 37,
+  "guild_rank": "F",
+  "reputation": 45,
+  "faction_trust": {
+    "Kingdom": 10,
+    "Commerce": 15,
+    "Civilian": 20
+  },
+  "daily_tax": 25,
+  "daily_utility": 15,
+  "adventurers": [
+    {
+      "id": 1,
+      "name": "アレン",
+      "rank": "C",
+      "age": 24,
+      "natural_lifespan": 78,
+      "stats": {
+        "hp": 120,
+        "max_hp": 120,
+        "strength": 22,
+        "defense": 18,
+        "intelligence": 8,
+        "agility": 16,
+        "dexterity": 14,
+        "leadership": 15
+      },
+      "skills": [
+        {
+          "skill_type": "Swordsmanship",
+          "level": 4,
+          "exp": 0
+        },
+        {
+          "skill_type": "Tactics",
+          "level": 2,
+          "exp": 0
+        },
+        {
+          "skill_type": "Cooperation",
+          "level": 4,
+          "exp": 40
+        }
+      ],
+      "status": "Training",
+      "completed_quests": 0
+    },
+    {
+      "id": 2,
+      "name": "エレナ",
+      "rank": "C",
+      "age": 22,
+      "natural_lifespan": 82,
+      "stats": {
+        "hp": 85,
+        "max_hp": 85,
+        "strength": 8,
+        "defense": 10,
+        "intelligence": 28,
+        "agility": 14,
+        "dexterity": 16,
+        "leadership": 10
+      },
+      "skills": [
+        {
+          "skill_type": "AttackMagic",
+          "level": 4,
+          "exp": 0
+        },
+        {
+          "skill_type": "HealingMagic",
+          "level": 3,
+          "exp": 0
+        },
+        {
+          "skill_type": "SupportMagic",
+          "level": 2,
+          "exp": 0
+        }
+      ],
+      "status": "Standby",
+      "completed_quests": 0
+    },
+    {
+      "id": 3,
+      "name": "ボリス",
+      "rank": "D",
+      "age": 28,
+      "natural_lifespan": 75,
+      "stats": {
+        "hp": 160,
+        "max_hp": 160,
+        "strength": 26,
+        "defense": 25,
+        "intelligence": 6,
+        "agility": 8,
+        "dexterity": 10,
+        "leadership": 8
+      },
+      "skills": [
+        {
+          "skill_type": "Shieldwork",
+          "level": 3,
+          "exp": 0
+        },
+        {
+          "skill_type": "MartialArts",
+          "level": 2,
+          "exp": 0
+        }
+      ],
+      "status": "Standby",
+      "completed_quests": 0
+    },
+    {
+      "id": 4,
+      "name": "リナ",
+      "rank": "D",
+      "age": 19,
+      "natural_lifespan": 80,
+      "stats": {
+        "hp": 95,
+        "max_hp": 95,
+        "strength": 12,
+        "defense": 11,
+        "intelligence": 14,
+        "agility": 24,
+        "dexterity": 22,
+        "leadership": 9
+      },
+      "skills": [
+        {
+          "skill_type": "Scouting",
+          "level": 3,
+          "exp": 0
+        },
+        {
+          "skill_type": "DisarmTrap",
+          "level": 3,
+          "exp": 0
+        },
+        {
+          "skill_type": "Archery",
+          "level": 2,
+          "exp": 0
+        }
+      ],
+      "status": "Standby",
+      "completed_quests": 0
+    },
+    {
+      "id": 5,
+      "name": "クルト",
+      "rank": "E",
+      "age": 17,
+      "natural_lifespan": 85,
+      "stats": {
+        "hp": 90,
+        "max_hp": 90,
+        "strength": 14,
+        "defense": 12,
+        "intelligence": 10,
+        "agility": 16,
+        "dexterity": 18,
+        "leadership": 7
+      },
+      "skills": [
+        {
+          "skill_type": "Herbalism",
+          "level": 2,
+          "exp": 0
+        },
+        {
+          "skill_type": "Archery",
+          "level": 1,
+          "exp": 0
+        }
+      ],
+      "status": "Standby",
+      "completed_quests": 0
+    }
+  ],
+  "parties": [
+    {
+      "id": 1,
+      "name": "第一遊撃小隊",
+      "member_ids": [
+        2,
+        3,
+        4
+      ],
+      "cooperation": 10.0,
+      "completed_quests": 0
+    }
+  ],
+  "inventory": [
+    {
+      "name": "ゴブリンの爪",
+      "category": "魔物部位",
+      "count": 12,
+      "buy_price": 30,
+      "market_price": 65
+    },
+    {
+      "name": "低級魔導石",
+      "category": "魔導素材",
+      "count": 5,
+      "buy_price": 150,
+      "market_price": 320
+    },
+    {
+      "name": "薬草（上質）",
+      "category": "薬草・植物",
+      "count": 20,
+      "buy_price": 20,
+      "market_price": 50
+    },
+    {
+      "name": "オオカミの毛皮",
+      "category": "毛皮・皮革",
+      "count": 4,
+      "buy_price": 80,
+      "market_price": 180
+    }
+  ],
+  "quests": [
+    {
+      "id": 1,
+      "title": "ゴブリンの森の掃討",
+      "faction": "Civilian",
+      "location": "南の森林",
+      "difficulty": "D",
+      "recommended_skill": "Swordsmanship",
+      "reward_estimate": 800,
+      "days_required": 1,
+      "days_remaining": 0,
+      "is_dispatched": false,
+      "assigned_party_id": null,
+      "assigned_party_name": null
+    },
+    {
+      "id": 2,
+      "title": "コボルトの鉱山調査",
+      "faction": "Commerce",
+      "location": "東部廃鉱山",
+      "difficulty": "D",
+      "recommended_skill": "Scouting",
+      "reward_estimate": 1200,
+      "days_required": 2,
+      "days_remaining": 0,
+      "is_dispatched": false,
+      "assigned_party_id": null,
+      "assigned_party_name": null
+    },
+    {
+      "id": 3,
+      "title": "ワイバーン警戒任務",
+      "faction": "Kingdom",
+      "location": "北の岩山街道",
+      "difficulty": "C",
+      "recommended_skill": "Archery",
+      "reward_estimate": 2500,
+      "days_required": 3,
+      "days_remaining": 0,
+      "is_dispatched": false,
+      "assigned_party_id": null,
+      "assigned_party_name": null
+    },
+    {
+      "id": 4,
+      "title": "上級薬草の緊急採取依頼",
+      "faction": "Civilian",
+      "location": "精霊の泉周辺",
+      "difficulty": "E",
+      "recommended_skill": "Herbalism",
+      "reward_estimate": 400,
+      "days_required": 1,
+      "days_remaining": 0,
+      "is_dispatched": false,
+      "assigned_party_id": null,
+      "assigned_party_name": null
+    },
+    {
+      "id": 5,
+      "title": "古代遺跡地下の探索",
+      "faction": "Kingdom",
+      "location": "旧王都地下遺跡",
+      "difficulty": "B",
+      "recommended_skill": "DisarmTrap",
+      "reward_estimate": 6000,
+      "days_required": 5,
+      "days_remaining": 0,
+      "is_dispatched": false,
+      "assigned_party_id": null,
+      "assigned_party_name": null
+    },
+    {
+      "id": 100,
+      "title": "港湾の海賊討伐・荷物奪還",
+      "faction": "Commerce",
+      "location": "南部港湾都市",
+      "difficulty": "F",
+      "recommended_skill": "Swordsmanship",
+      "reward_estimate": 312,
+      "days_required": 1,
+      "days_remaining": 0,
+      "is_dispatched": false,
+      "assigned_party_id": null,
+      "assigned_party_name": null
+    },
+    {
+      "id": 101,
+      "title": "学者の遺跡調査の護衛",
+      "faction": "Civilian",
+      "location": "旧王都地下遺跡",
+      "difficulty": "D",
+      "recommended_skill": "Scouting",
+      "reward_estimate": 789,
+      "days_required": 2,
+      "days_remaining": 0,
+      "is_dispatched": false,
+      "assigned_party_id": null,
+      "assigned_party_name": null
+    },
+    {
+      "id": 102,
+      "title": "上質毛皮の大量採取依頼",
+      "faction": "Commerce",
+      "location": "北の狩場",
+      "difficulty": "E",
+      "recommended_skill": "Archery",
+      "reward_estimate": 747,
+      "days_required": 1,
+      "days_remaining": 0,
+      "is_dispatched": false,
+      "assigned_party_id": null,
+      "assigned_party_name": null
+    }
+  ],
+  "staff_list": [
+    {
+      "name": "マルタ",
+      "role": "受付主任",
+      "salary": 40
+    },
+    {
+      "name": "トマス",
+      "role": "倉庫番・鑑定士",
+      "salary": 35
+    },
+    {
+      "name": "セリア",
+      "role": "事務・会計係",
+      "salary": 30
+    }
+  ],
+  "training_dojo": {
+    "instructors": [],
+    "trainee_ids": [
+      1
+    ],
+    "max_trainees": 6,
+    "recent_training_logs": []
+  },
+  "hall_of_fame": [],
+  "total_sales_revenue": 0,
+  "total_commission": 0,
+  "total_expenses": 5220,
+  "total_quests_completed": 0,
+  "latest_quest_reports": [],
+  "pending_recruits": [
+    {
+      "id": 103,
+      "name": "シェリー",
+      "rank": "B",
+      "age": 30,
+      "natural_lifespan": 70,
+      "stats": {
+        "hp": 153,
+        "max_hp": 153,
+        "strength": 37,
+        "defense": 32,
+        "intelligence": 30,
+        "agility": 32,
+        "dexterity": 33,
+        "leadership": 13
+      },
+      "skills": [
+        {
+          "skill_type": "MartialArts",
+          "level": 3,
+          "exp": 0
+        },
+        {
+          "skill_type": "Cooperation",
+          "level": 4,
+          "exp": 0
+        }
+      ],
+      "status": "Standby",
+      "completed_quests": 0
+    },
+    {
+      "id": 104,
+      "name": "ヴァルク",
+      "rank": "E",
+      "age": 20,
+      "natural_lifespan": 70,
+      "stats": {
+        "hp": 72,
+        "max_hp": 72,
+        "strength": 18,
+        "defense": 14,
+        "intelligence": 15,
+        "agility": 15,
+        "dexterity": 17,
+        "leadership": 10
+      },
+      "skills": [
+        {
+          "skill_type": "Herbalism",
+          "level": 1,
+          "exp": 0
+        }
+      ],
+      "status": "Standby",
+      "completed_quests": 0
+    }
+  ],
+  "next_entity_id": 105,
+  "audit": {
+    "last_audit_day": 30,
+    "quests_completed_this_period": 0,
+    "consecutive_failures": 1,
+    "history": [
+      {
+        "result": "Fail",
+        "audit_day": 30,
+        "tribute_required": 100,
+        "tribute_paid": 0,
+        "quests_required": 1,
+        "quests_completed": 0,
+        "consecutive_failures": 1,
+        "message": "【月次監査・未達】上納金 100G 中 0G のみ納付。クエスト実績 0/1 件。連続未達: 1回目！"
+      }
+    ]
+  },
+  "game_over": false,
+  "game_cleared": false,
+  "rng_seed": 1794842022817,
+  "logs": [
+    "【開業】『冒険者ギルド』が学術都市にて営業を開始しました。",
+    "【着任】ギルドマスター 壁の中にいる が経営の指揮を執ります。",
+    "【通達】固定資産税・光熱費・職員給与は毎日自動引き落としされます。",
+    "【新体制】スキル制および最大10名編成の連携システムが始動しました。",
+    "【道場入門】アレン が訓練所の訓練生として入門しました。",
+    "【2日目 (1年目 2日)】固定経費計 145G を支払いました。",
+    "【3日目 (1年目 3日)】固定経費計 145G を支払いました。",
+    "【4日目 (1年目 4日)】固定経費計 145G を支払いました。",
+    "【5日目 (1年目 5日)】固定経費計 145G を支払いました。",
+    "【新規依頼】新しいクエスト『港湾の海賊討伐・荷物奪還』が掲示板に追加されました。",
+    "【6日目 (1年目 6日)】固定経費計 145G を支払いました。",
+    "【7日目 (1年目 7日)】固定経費計 145G を支払いました。",
+    "【8日目 (1年目 8日)】固定経費計 145G を支払いました。",
+    "【9日目 (1年目 9日)】固定経費計 145G を支払いました。",
+    "【10日目 (1年目 10日)】固定経費計 145G を支払いました。",
+    "【新規依頼】新しいクエスト『学者の遺跡調査の護衛』が掲示板に追加されました。",
+    "【11日目 (1年目 11日)】固定経費計 145G を支払いました。",
+    "【12日目 (1年目 12日)】固定経費計 145G を支払いました。",
+    "【13日目 (1年目 13日)】固定経費計 145G を支払いました。",
+    "【14日目 (1年目 14日)】固定経費計 145G を支払いました。",
+    "【15日目 (1年目 15日)】固定経費計 145G を支払いました。",
+    "【新規依頼】新しいクエスト『上質毛皮の大量採取依頼』が掲示板に追加されました。",
+    "【16日目 (1年目 16日)】固定経費計 145G を支払いました。",
+    "【17日目 (1年目 17日)】固定経費計 145G を支払いました。",
+    "【18日目 (1年目 18日)】固定経費計 145G を支払いました。",
+    "【19日目 (1年目 19日)】固定経費計 145G を支払いました。",
+    "【20日目 (1年目 20日)】固定経費計 145G を支払いました。",
+    "【21日目 (1年目 21日)】固定経費計 145G を支払いました。",
+    "【22日目 (1年目 22日)】固定経費計 145G を支払いました。",
+    "【23日目 (1年目 23日)】固定経費計 145G を支払いました。",
+    "【24日目 (1年目 24日)】固定経費計 145G を支払いました。",
+    "【25日目 (1年目 25日)】固定経費計 145G を支払いました。",
+    "【26日目 (1年目 26日)】固定経費計 145G を支払いました。",
+    "【27日目 (1年目 27日)】固定経費計 145G を支払いました。",
+    "【28日目 (1年目 28日)】固定経費計 145G を支払いました。",
+    "【志願者】シェリー（Bランク相当）がギルドへの入団を志願してきました！",
+    "【29日目 (1年目 29日)】固定経費計 145G を支払いました。",
+    "【30日目 (1年目 30日)】固定経費計 145G を支払いました。",
+    "【月次監査・未達】上納金 100G 中 0G のみ納付。クエスト実績 0/1 件。連続未達: 1回目！",
+    "【31日目 (1年目 31日)】固定経費計 145G を支払いました。",
+    "【32日目 (1年目 32日)】固定経費計 145G を支払いました。",
+    "【33日目 (1年目 33日)】固定経費計 145G を支払いました。",
+    "【34日目 (1年目 34日)】固定経費計 145G を支払いました。",
+    "【35日目 (1年目 35日)】固定経費計 145G を支払いました。",
+    "【志願者】ヴァルク（Eランク相当）がギルドへの入団を志願してきました！",
+    "【36日目 (1年目 36日)】固定経費計 145G を支払いました。",
+    "【37日目 (1年目 37日)】固定経費計 145G を支払いました。",
+    "📂 データを読み込みました (save_data.json)"
+  ]
+}

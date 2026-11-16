@@ -176,7 +176,7 @@ fn render_inner(ui: &mut egui::Ui, state: &mut GameState) {
             }
             AdventurerAction::HireAsInstructor(id) => {
                 let age = state.adventurers.iter().find(|a| a.id == id).map_or(40, |a| a.age);
-                let salary = suggested_salary(age);
+                let salary = crate::core::training::suggested_instructor_salary(age);
                 if let Err(e) = state.hire_as_instructor(id, salary) {
                     state.add_log(format!("【エラー】教官採用失敗: {e}"));
                 }
@@ -388,7 +388,7 @@ fn render_inner(ui: &mut egui::Ui, state: &mut GameState) {
     }
 }
 
-/// 年齢に応じた推奨日給を計算
+/// 年齢に応じた推奨教官日給を計算
 fn suggested_salary(age: u32) -> i64 {
     // 若い引退者は低め、ベテランは高め（最低25G、最高80G）
     let base = 25i64 + ((age as i64).saturating_sub(25)) * 2;

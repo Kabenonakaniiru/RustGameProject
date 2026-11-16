@@ -1,6 +1,16 @@
 use serde::{Deserialize, Serialize};
 use super::adventurer::{Adventurer, SkillType};
 
+/// 推奨教官日給の計算（経験豊富な高齢冒険者ほど指導力が高く日給も高額）
+pub const fn suggested_instructor_salary(age: u32) -> i64 {
+    match age {
+        0..=44 => 30,
+        45..=54 => 45,
+        55..=64 => 60,
+        _ => 80,
+    }
+}
+
 /// 訓練所の教官（引退した冒険者または専任指導員）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Instructor {
@@ -39,6 +49,8 @@ pub struct TrainingDojo {
     pub instructors: Vec<Instructor>,
     pub trainee_ids: Vec<u64>,
     pub max_trainees: usize,
+    #[serde(default)]
+    pub recent_training_logs: Vec<String>,
 }
 
 impl Default for TrainingDojo {
@@ -47,6 +59,7 @@ impl Default for TrainingDojo {
             instructors: Vec::new(),
             trainee_ids: Vec::new(),
             max_trainees: 6,
+            recent_training_logs: Vec::new(),
         }
     }
 }
@@ -59,6 +72,18 @@ impl TrainingDojo {
     /// 教官の日給合計
     pub fn daily_salary_total(&self) -> i64 {
         self.instructors.iter().map(|i| i.daily_salary).sum()
+    }
+
+    /// 指定冒険者が訓練生として登録されているか
+    pub fn is_trainee(&self, adventurer_id: u64) -> bool {
+        self.trainee_ids.contains(&adventurer_id)
+    }
+
+    /// 指定冒険者が教官として雇用されているか
+    pub fn is_instructor(&self, adventurer_id: u64) -> bool {
+        self.instructors
+            .iter()
+            .any(|i| i.adventurer_id == Some(adventurer_id))
     }
 
     /// 訓練生を追加
@@ -90,7 +115,7 @@ impl TrainingDojo {
 
     /// 1日の訓練処理
     /// 訓練生に経験値を付与し、レベルアップや成長メッセージを返す
-    pub fn process_daily_training(&self, adventurers: &mut [Adventurer]) -> Vec<String> {
+    pub fn process_daily_training(&mut self, adventurers: &mut [Adventurer]) -> Vec<String> {
         let mut messages = Vec::new();
 
         for &trainee_id in &self.trainee_ids {
@@ -119,6 +144,14 @@ impl TrainingDojo {
                 // 連携協調スキルの自然学習
                 adv.gain_skill_exp(SkillType::Cooperation, 15);
             }
+        }
+
+        for msg in &messages {
+            self.recent_training_logs.push(msg.clone());
+        }
+        if self.recent_training_logs.len() > 50 {
+            let overflow = self.recent_training_logs.len() - 50;
+            self.recent_training_logs.drain(0..overflow);
         }
 
         messages

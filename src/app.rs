@@ -298,6 +298,9 @@ impl eframe::App for GuildApp {
                         Tab::FinancialReport => {
                             views::finance::render(ui, &mut self.state);
                         }
+                        Tab::TrainingDojo => {
+                            views::training::render(ui, &mut self.state);
+                        }
                     });
                 });
             }

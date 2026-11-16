@@ -6,3 +6,4 @@ pub mod quests;
 pub mod setup;
 pub mod staff;
 pub mod title_screen;
+pub mod training;

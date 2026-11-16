@@ -13,17 +13,19 @@ pub enum Tab {
     MarketAndTrading,  // 倉庫・売買（素材・部位の売却）
     StaffAndFacility,  // 職員・施設管理（人件費・税金・光熱費）
     FinancialReport,   // 収支台帳
+    TrainingDojo,      // 訓練所・道場
 }
 
 impl Tab {
     /// 全タブの定義リスト
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::GuildOverview,
         Self::QuestsAndDispatch,
         Self::Adventurers,
         Self::MarketAndTrading,
         Self::StaffAndFacility,
         Self::FinancialReport,
+        Self::TrainingDojo,
     ];
 
     /// タブの表示用ラベル（アイコン付き）
@@ -35,6 +37,7 @@ impl Tab {
             Self::MarketAndTrading => "📦 倉庫・戦利品売買",
             Self::StaffAndFacility => "👥 職員雇用・施設維持",
             Self::FinancialReport => "📊 収支台帳",
+            Self::TrainingDojo => "🥋 訓練所・道場",
         }
     }
 }

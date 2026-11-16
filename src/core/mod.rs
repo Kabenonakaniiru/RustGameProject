@@ -149,6 +149,56 @@ mod tests {
     }
 
     #[test]
+    fn test_enroll_and_graduate_trainee() {
+        let mut state = GameState::new_default();
+
+        // クルト（id=5, 待機中）を訓練生に登録
+        let trainee_id = state.adventurers[4].id;
+        assert!(state.enroll_trainee(trainee_id).is_ok());
+
+        // ステータスが Training に変わっていること
+        assert!(matches!(
+            state.adventurers[4].status,
+            AdventurerStatus::Training
+        ));
+        // 訓練所の trainee_ids に含まれること
+        assert!(state.training_dojo.is_trainee(trainee_id));
+
+        // 重複登録は失敗
+        assert!(state.enroll_trainee(trainee_id).is_err());
+
+        // 卒業で待機中に戻る
+        assert!(state.remove_trainee(trainee_id).is_ok());
+        assert!(matches!(
+            state.adventurers[4].status,
+            AdventurerStatus::Standby
+        ));
+        assert!(!state.training_dojo.is_trainee(trainee_id));
+    }
+
+    #[test]
+    fn test_deceased_instructor_auto_removed() {
+        let mut state = GameState::new_default();
+
+        // エレナ（index=1）を引退させ教官として雇用
+        let elena_id = state.adventurers[1].id;
+        state.adventurers[1].status = AdventurerStatus::Retired;
+        state.hire_as_instructor(elena_id, 50).expect("教官採用に成功するべき");
+        assert!(state.training_dojo.is_instructor(elena_id));
+
+        // 寿命を次の advance_day() で超えるよう設定
+        state.adventurers[1].age = 81;
+        state.adventurers[1].natural_lifespan = 82;
+        for _ in 0..364 {
+            state.day += 1;
+        }
+        state.advance_day(); // 82歳到達 → 老衰永眠
+
+        // 教官リストから自動除外されること
+        assert!(!state.training_dojo.is_instructor(elena_id));
+    }
+
+    #[test]
     fn test_aging_and_lifespan_death() {
         let mut state = GameState::new_default();
         let initial_str = state.adventurers[0].stats.strength;

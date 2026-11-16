@@ -584,6 +584,20 @@ impl GameState {
                 party.remove_member(id);
             }
             self.training_dojo.remove_trainee(id);
+
+            // 教官職からも退任
+            if let Some(pos) = self
+                .training_dojo
+                .instructors
+                .iter()
+                .position(|i| i.adventurer_id == Some(id))
+            {
+                let inst = self.training_dojo.instructors.remove(pos);
+                self.add_log(format!(
+                    "【教官退任】天寿を全うされたため、{} が訓練所の教官職を退任しました。",
+                    inst.name
+                ));
+            }
         }
     }
 
@@ -1022,6 +1036,56 @@ impl GameState {
         let name = self.training_dojo.instructors[pos].name.clone();
         self.training_dojo.instructors.remove(pos);
         self.add_log(format!("【教官解雇】{name} が訓練所の教官職を退きました。"));
+        Ok(())
+    }
+
+    /// 冒険者を訓練生として道場に登録する
+    pub fn enroll_trainee(&mut self, adventurer_id: u64) -> Result<(), &'static str> {
+        let adv = self
+            .adventurers
+            .iter_mut()
+            .find(|a| a.id == adventurer_id)
+            .ok_or("冒険者が見つかりません")?;
+
+        if !matches!(adv.status, AdventurerStatus::Standby) {
+            return Err("待機中の冒険者のみ訓練所に登録できます");
+        }
+
+        self.training_dojo.enroll_trainee(adventurer_id)?;
+        adv.status = AdventurerStatus::Training;
+        let name = adv.name.clone();
+
+        // 所属部隊があれば除外
+        for party in &mut self.parties {
+            party.remove_member(adventurer_id);
+        }
+
+        self.add_log(format!(
+            "【道場入門】{name} が訓練所の訓練生として入門しました。"
+        ));
+        Ok(())
+    }
+
+    /// 冒険者を訓練所から退所（卒業）させる
+    pub fn remove_trainee(&mut self, adventurer_id: u64) -> Result<(), &'static str> {
+        let adv = self
+            .adventurers
+            .iter_mut()
+            .find(|a| a.id == adventurer_id)
+            .ok_or("冒険者が見つかりません")?;
+
+        if !self.training_dojo.remove_trainee(adventurer_id) {
+            return Err("この冒険者は訓練生として登録されていません");
+        }
+
+        if matches!(adv.status, AdventurerStatus::Training) {
+            adv.status = AdventurerStatus::Standby;
+        }
+
+        let name = adv.name.clone();
+        self.add_log(format!(
+            "【道場卒業】{name} が訓練所での修練を修了・退所しました。"
+        ));
         Ok(())
     }
 }
